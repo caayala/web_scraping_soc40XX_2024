@@ -1,0 +1,43 @@
+---
+title: "Control 1"
+subtitle: "Web scraping y acceso a datos desde la web"
+author: "Cristián Ayala"
+date: "2024-06-06"
+lang: "es"
+format:
+  html: 
+    page-layout: article
+    self-contained: false
+---
+
+```{r, echo=FALSE}
+```
+
+Ponderación
+
+: 20% de la nota final del curso
+
+Formato
+
+:   Desarrollar esta tarea con [Quarto](https://quarto.org/docs/get-started/hello/rstudio.html) o [Rmarkdown](https://rmarkdown.rstudio.com/lesson-1.html) generando un `.pdf`, agregando comentarios cuando sea necesario.
+
+### Objetivo: 
+
+Capturar la información presente en la página <https://www.scrapethissite.com/pages/simple/> para el análisis de información 
+
+## Tareas:
+
+1) Desde la página web a capturar, identificar el nombre de la clase de `css` para:
+
+    * Nombre de país
+    * Nombre de capital
+    * Población
+    * Superficie
+
+2) Capturar la información de todos los países para crear una `data.frame` que la contenga.
+
+3) Listar los nombres de países desde el con menor población al con mayor población.
+
+4) Agregar a la base de datos de países el dato `continente` para cada uno según la base de datos [countryName_continent.csv](c_1_files/countryName_continent.csv) disponible en el repositorio.
+
+5) Graficar la relación entre superficie (eje x) y población (eje y), coloreando cada país según el continente al que pertenezca según el dato presente en `continente`.
