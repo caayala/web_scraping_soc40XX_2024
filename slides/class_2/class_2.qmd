@@ -1,0 +1,247 @@
+---
+title: |
+  | Clase 2: Trabajo con listas 
+  | y expresiones regulares
+subtitle: "Web scraping y acceso a datos desde la web"
+author: "<br>Cristián Ayala<br> Director DESUC"
+lang: 'es'
+date: '2024-05-30'
+date-format: 'long'
+copyright: "[github.com/caayala](https://github.com/caayala)"
+format: 
+  revealjs:
+    footer: "DESUC Web Scraping, 2024"
+    slide-number: c/t
+    transition: none
+    theme: [solarized]
+execute: 
+  echo: true
+# editor: 
+#   mode: source
+---
+
+
+
+## Hoy veremos
+
+- Repaso de [`purrr`](https://purrr.tidyverse.org).
+
+- Repaso de [`stringr`](https://stringr.tidyverse.org).
+
+
+
+## Motivación
+
+- Desde la web, tendremos situaciones donde obtendremos **listas** de objetos de **texto** que deben ser **procesados**.
+
+- Se encontará datos en [json](https://en.wikipedia.org/wiki/JSON).
+
+- La manipulación de datos jerárquicos desde la web es análoga al trabajo con listas en R.
+
+- Para trabajar con listas directamente en R usaremos funciones del paquete `purrr`.
+
+- Para procesar texto usaremos el paquete `stringr`.
+
+
+
+# Manipulación de listas
+
+`purrr`
+
+
+
+## purrr: guía
+
+:::: {.columns}
+
+::: {.column width="50%"}
+La función principal es `map` y su idea general es:
+
+para cada  
+__`objeto en la lista`__  
+haga __`función`__
+:::
+
+::: {.column width="50%"}
+![purrr cheatsheets](https://raw.githubusercontent.com/rstudio/cheatsheets/main/pngs/purrr.png)
+
+[Bajar pdf](https://posit.co/wp-content/uploads/2022/10/purrr.pdf)
+:::
+
+::::
+
+
+
+## purrr: fundamento  {.smaller}
+
+:::: {.columns}
+
+::: {.column width="50%"}
+lista de ejemplo
+
+```{r}
+(l <-  list(a = c('caso' = 1:2),
+            b = c('caso' = 4:5)))
+```
+
+Suma de cada elemento de la lista.
+
+```{r}
+l |> purrr::map(sum)
+```
+:::
+
+::: {.column width="50%"}
+Extracción del elemento `caso2`
+
+```{r}
+l |> purrr::map('caso2')
+```
+
+Transformación de lista a tibble
+
+```{r}
+tibble::enframe(l)
+```
+:::
+
+::::
+
+
+
+# Manipulación de texto
+
+`stringr`
+
+
+
+## stringr: guía
+
+:::: {.columns}
+
+::: {.column width="50%"}
+Las funciones de `stringr` permiten manipular texto según [expresiones regulares](https://es.wikipedia.org/wiki/Expresión_regular).
+
+Con ellas podemos definir patrones de búsqueda de texto.
+:::
+
+::: {.column width="50%"}
+![stringr cheatsheets](https://github.com/rstudio/cheatsheets/raw/main/pngs/strings.png)
+
+[Bajar pdf](https://posit.co/wp-content/uploads/2022/10/strings-1.pdf)
+
+:::
+
+::::
+
+
+
+## stringr: fundamento {.smaller}
+
+```{r, include=FALSE}
+library(stringr)
+```
+
+:::: {.columns}
+
+::: {.column width="50%"}
+```{r}
+texto <- c('Viernes Santo', 'Sábado Santo', 
+           'Elección 1', '18 septiembre')
+```
+
+Detectar elementos:
+
+```{r}
+str_detect(texto, 'Elección')
+```
+
+Obtener solo elementos detectados:
+
+```{r}
+str_subset(texto, 'Santo')
+```
+
+Extraer texto:
+
+```{r}
+str_extract(texto, '\\d+') # números
+```
+
+Reemplazo:
+
+```{r}
+str_replace(texto, 'Santo', 'Cristiano')
+```
+:::
+
+::: {.column width="50%"}
+Reemplazo de un grupo de texto:
+
+```{r}
+str_replace(texto, '(.*) Santo', '\\1')
+```
+
+```{r}
+str_replace(texto, '(.*) (Santo)', '\\2_\\1')
+```
+
+Remover texto:
+
+```{r}
+str_remove(texto, ' ')
+```
+
+```{r}
+str_remove(texto, '[aeiou]')
+```
+
+```{r}
+str_remove_all(texto, '[aeiou]')
+```
+:::
+
+::::
+
+
+
+## Taller: ejemplo feriados
+
+JSON con un listado de feriados en Chile
+
+```{r}
+#| label: feriados
+url <- 'https://apis.digital.gob.cl/fl/feriados'
+resp <- jsonlite::read_json(url) 
+resp |> (function(x) x[1:2])() |> str(2)
+```
+
+Vamos al [código](class_2_taller.R).
+
+
+
+## Recursos adicionales
+
+- [Tutorial de purrr](https://github.com/cwickham/purrr-tutorial) por Charlotte Wickham
+
+- Paquete con listas de ejemplo en [repurrrsive](https://github.com/jennybc/repurrrsive)
+
+- Pruebas de expresiones regulares: [regex101](https://regex101.com)
+
+
+##  {.smaller}
+
+Presentación y código en GitHub:\
+<https://github.com/caayala/web_scraping_soc40XX_2024>\
+<https://caayala.github.io/web_scraping_soc40XX_2024>
+
+<br>
+
+::: {style="font-size:3em; text-align:center; padding: 50px;"}
+¡Gracias!
+:::
+
+<br> 
+Cristián Ayala\
+<https://blog.desuc.cl/>\
+<http://github.com/caayala>
