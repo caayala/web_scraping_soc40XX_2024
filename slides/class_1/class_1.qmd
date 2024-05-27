@@ -1,0 +1,562 @@
+---
+title: "Clase 1: Introducción"
+subtitle: "Web scraping y acceso a datos desde la web con R"
+author: "<br>Cristián Ayala<br> Director DESUC"
+lang: 'es'
+date: '2024-05-28'
+date-format: 'long'
+copyright: "[github.com/caayala](https://github.com/caayala)"
+format: 
+  revealjs:
+    footer: "DESUC Web Scraping, 2024"
+    slide-number: c/t
+    transition: none
+    theme: [moon]
+# editor: 
+#   mode: source
+---
+
+
+
+## Expectativas y nivelación
+
+-   ¿Cuál fue su motivación para tomar este curso?
+
+-   ¿Que tanto saben de la *web*?
+
+-   Recordar algunas nociones de R que nos ayudarán en lo que sigue del curso.
+
+## Recomendaciones iniciales
+
+-   Instalar [*R 4.3*](https://cloud.r-project.org/): Uso la nueva *pipe base* en mis ejemplos (`|>`)
+    -   **Cuidado**. Será necesario re--instalar todos los paquetes.
+-   Instalar la última versión de [*RStudio*](https://www.rstudio.com/products/rstudio/download/#download).
+    -   Soporte para `|>` y mejoras varias.
+-   Acceder a repositorio de GitHub para acceder a material de clases y ejercicios.
+    -   [Repositorio del curso](https://github.com/caayala/web_scraping_soc40XX_2024)
+
+# Introducción
+
+## ¿Por qué web scraping?
+
+Definición:
+
+> Capturar datos estructurados de una forma automatizada.
+
+Si ya han *copiado--&--pegado* información de la web a un archivo, guardado imágenes o sonidos manualmente, ya hicieron web scraping.
+
+Ahora queremos tener la capacidad de **automatizar** ese proceso.
+
+<br />
+
+Ej: Comparar precios en un sitio como [Knasta](https://knasta.cl).
+
+## ¿Por qué web scraping? {.smaller}
+
+¡Tanta información disponible!
+
+::: columns
+::: {.column width="50%"}
+-   Permite **automatizar** la captura de gran cantidad de datos.
+
+-   Capacidad de **complementar** e **integrar** distintas fuentes de información.
+
+-   Esta información no tiene que ser necesariamente pública.
+
+-   Concluido el proceso, se obtiene información estructurada.
+:::
+
+::: {.column width="50%"}
+-   La web es **desordenada**.
+
+-   Es posible requerir de mucho **procesamiento** luego de obtenido los datos.
+
+-   Considerar **aspectos [éticos](https://www.imdb.com/robots.txt)** y legales. Tema de interés ahora por la captura de datos para IA.
+:::
+:::
+
+## ¿Para que se usa el web scraping?
+
+::: columns
+::: {.column width="50%"}
+1.  Precios
+
+2.  Propiedades
+
+3.  Análisis de mercado
+
+4.  Finanzas
+
+5.  Noticias y contenido
+:::
+
+::: {.column width="50%"}
+![Usos de web scraping](https://miro.medium.com/max/1132/1*G_HA1qyqT9aqmLoh3bWwTw.png)
+:::
+:::
+
+## ¿Cuál es el proceso de un web scraping?
+
+1.  **Identificar** un sitio web de interés.
+
+2.  Localizar las **URLs** en donde esté la información que queramos extraer.
+
+3.  **Pedir** la información con esos URLs al servidor recibir los datos.
+
+4.  **Localizar** la información específica que interesa guardar.
+
+5.  **Estructurar** la información para guardarla en un archivo.
+
+## ¿Por qué con R?
+
+-   Sistema de análisis integrado.
+
+-   Luego de adquirir datos, podemos rápidamente seguir con su limpieza y análisis estadístico.
+
+-   **importar** -\> manipular -\> modelar -\> visualizar -\> comunicar
+
+::: {style="text-align:center;"}
+```{=html}
+<img 
+src="https://upload.wikimedia.org/wikipedia/commons/d/d4/One_Ring_Blender_Render.png" 
+alt="el anillo del poder" 
+width="33%"/>
+```
+:::
+
+## ¿Qué veremos en este curso? {.smaller}
+
+::: columns
+::: {.column width="50%"}
+-   ¿Cómo trabajar con listas en R?
+
+-   ¿Qué es una página web? ¿Cómo entender `html`?
+
+-   ¿Qué es una API?
+
+-   ¿Qué librerías podemos usar para aprovechar APIs de servicios web?
+
+-   ¿Cuáles son las consideraciones a tener en cuenta?
+
+Será eminentemente **práctico**.
+:::
+
+::: {.column width="50%"}
+![Mago de Oz](https://hackerchick.com/media/2019/05/wizard-of-oz-man-behind-the-curtain.jpg)
+:::
+:::
+
+# Clase 1
+
+## ¿Qué es una página web? {.smaller}
+
+::: columns
+::: {.column width="50%"}
+-   Combina un protocolo de intercambio de datos ---`http`--- para el intercambio de información.
+
+-   La información intercambiada puede ser cualesquiera.
+
+-   Se intercambian mensajes individuales: el cliente envía mensaje, el servidor responde.
+
+-   Para mantener una sesión de comunicación se usan *cookies* y *encabezados*.
+:::
+
+::: {.column width="50%"}
+![An overview of HTTP](https://developer.mozilla.org/en-US/docs/Web/HTTP/Overview/fetching_a_page.png)
+
+::: {style="font-size:50%;"}
+Fuente: [https://developer.mozilla.org](https://developer.mozilla.org/en-US/docs/Web/HTTP/Overview)
+:::
+:::
+:::
+
+## ¿Qué es una página web? Componentes {.smaller}
+
+::: columns
+::: {.column width="50%"}
+-   Se ven las capas de protocolos que componen *la web*.
+
+-   Es extensible: se pueden construir servicios unos sobre otros.
+
+-   Para nuestro interés nos interesa la parte superior: `html`, `css`, `API` y `javascript`.
+:::
+
+::: {.column width="50%"}
+![An overview of HTTP](https://developer.mozilla.org/en-US/docs/Web/HTTP/Overview/fetching_a_page.png)
+
+::: {style="font-size:50%;"}
+Fuente: [https://developer.mozilla.org](https://developer.mozilla.org/en-US/docs/Web/HTTP/Overview)
+:::
+:::
+:::
+
+## ¿Qué es una página web? Componentes {.smaller}
+
+::: columns
+::: {.column width="50%"}
+-   `html` (*HyperText Markup Language*): provee el contenido que nos gustaría obtener.
+
+-   `css` (*Cascading Style Sheets*): controla la forma en que se muestra ese contenido.\
+    Podemos usar reglas de formatos para seleccionar el contenido de la página.
+
+-   `APIs` (*Application Programming Interface*): permite pedirle a un servidor información específica de nuestro interés.
+
+-   `javascript`: faculta a que una página web contenga y ejecute programas ([¡wordle!](https://www.nytimes.com/games/wordle/index.html)).
+
+    Hay ocasiones que es ese programa el que pide, procesa y/o muestra los datos que nos interesa.
+:::
+
+::: {.column width="50%"}
+![An overview of HTTP](https://developer.mozilla.org/en-US/docs/Web/HTTP/Overview/fetching_a_page.png)
+
+::: {style="font-size:50%;"}
+Fuente: [https://developer.mozilla.org](https://developer.mozilla.org/en-US/docs/Web/HTTP/Overview)
+:::
+:::
+:::
+
+## ¿Cómo es una página html? {.smaller}
+
+::: columns
+::: {.column width="40%"}
+<html>
+
+<head>
+
+<title>Título de página</title>
+
+</head>
+
+<body>
+
+<h1 id="first">
+
+Un encabezado
+
+</h1>
+
+<p>Algún texto & <b>texto en negrita</b>.</p>
+
+<img src="./images/dog.jpg" width="100" height="100"/>
+
+</body>
+
+</html>
+:::
+
+::: {.column width="60%"}
+``` html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Título de página</title>
+</head>
+<body>
+  <h1 id='first'>Un encabezado</h1>
+  <p>Algún texto &amp; <b>texto en negrita</b>.</p>
+  <img src='./images/dog.jpg' width='100' height='100'>
+</body>
+</html>
+```
+:::
+:::
+
+## ¿Cómo es una página html? Jerarquía {.smaller}
+
+Una página web tiene una estructura jerárquica.
+
+::: columns
+::: {.column width="40%"}
+-   *Elementos*: tags como `title` o `p` que parten y terminan
+
+-   *Atributos*: `id` o `class`
+
+-   *Contenido*: Lo que queda dentro de los elementos.
+:::
+
+::: {.column width="60%"}
+``` html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Título de página</title>
+</head>
+<body>
+  <h1 id='first'>Un encabezado</h1>
+  <p>Algún texto &amp; <b>texto en negrita</b>.</p>
+  <img src='./images/dog.jpg' width='100' height='100'>
+</body>
+</html>
+```
+:::
+:::
+
+## ¿Cómo es una página html? Elementos {.smaller}
+
+Elementos de `html`
+
+::: columns
+::: {.column width="50%"}
+-   Los elementos se *abren* y *cierran*, en general
+
+::: {style="font-size:1.2em;"}
+``` html
+<tagname>Contenido…</tagname>
+```
+:::
+
+-   `h#`: encabezados. Niveles de `h1` a `h6`
+
+-   `p`: párrafos
+
+-   `img`: imagen.
+
+    -   Requiere el atributo `src` (no tiene cierre)
+
+-   `table`: tablas
+
+-   `a`: link (*anchor*).
+
+    -   Requiere el atributo `href`
+
+-   `<br>`: salto de línea (no tiene cierre)
+:::
+
+::: {.column width="50%"}
+``` html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Título de página</title>
+</head>
+<body>
+  <h1 id='first'>Un encabezado</h1>
+  <p>Algún texto &amp; <b>texto en negrita</b>.</p>
+  <img src='./images/dog.jpg' width='100' height='100'>
+</body>
+</html>
+```
+
+[HTML Elements](https://www.w3schools.com/html/html_elements.asp)
+:::
+:::
+
+# Nuestro primer scraping
+
+## Nuestro primer scraping: lectura de contenido
+
+Leamos la [página web](./class_1_files/mi_primer_scraping.html) que hemos revisado.
+
+::: {style="font-size:0.9em;"}
+```{r}
+suppressPackageStartupMessages(library(tidyverse))
+library(rvest)
+url <- 'class_1_files/mi_primer_scraping.html'
+
+if(interactive()){
+  url <- 'class_1_files/mi_primer_scraping.html'
+}
+
+html <- read_html(x = url)
+html
+```
+:::
+
+Capturamos el contenido de la página.
+
+## Nuestro primer scraping: extraer elementos
+
+Capturamos el contenido de la página.
+
+-   El `<body>`
+
+```{r}
+html |> html_element('body')
+```
+
+-   El párrafo `<p>`
+
+```{r}
+html |> html_element('p')
+```
+
+## Nuestro primer scraping: extraer elementos
+
+Capturamos el contenido de la página.
+
+-   El texto del elemento identificado con `id = first`
+
+```{r}
+html |> html_element('#first') |> html_text()
+```
+
+-   El link a la imágen. Atributo `src` dentro de elemento `img`
+
+```{r}
+html |> html_element('img') |> html_attr('src')
+```
+
+-   Todos los atributos relacionados con la imagen.
+
+```{r}
+html |> html_element('img') |> html_attrs()
+```
+
+## Librerías: rvest {.smaller}
+
+[Referencia](https://rvest.tidyverse.org/reference/index.html) de funciones en [rvest](https://rvest.tidyverse.org/reference/index.html) a tener en cuenta:
+
+-   `xlm2::read_html()`: función exportada por rvest para leer páginas web.
+
+-   `html_attr()` `html_attrs()`: extraemos atributos
+
+-   `html_children()`: extrae elementos bajo cierto nodo
+
+-   `html_element()` `html_elements()`: extrae elementos
+
+-   `html_name()`: extrae el nombre de elementos
+
+-   `html_table()`: extrae y transforma a una data frame una tabla html
+
+-   `html_text()` `html_text2()`: extrae texto o contenido
+
+Los elementos contenidos en `<body>`:
+
+```{r}
+html |> html_element('body') |> html_children() |> html_name()
+```
+
+## Starwars
+
+Recaudación y crítica según datos en [Wikipedia](https://es.wikipedia.org/wiki/Star_Wars).
+
+```{r}
+#| cache = TRUE
+url <- 'https://es.wikipedia.org/wiki/Star_Wars'
+html <- read_html(url) # Leo la página web
+
+df_tablas <- html |> 
+  html_elements('table.wikitable') |>  html_table()
+
+df_tablas |> str(1)
+```
+
+Hay 8 tablas en la página.
+
+## Starwars: tablas con datos
+
+Interesa la tabla 8 de recaudación
+
+::: {style="font-size:0.8em;"}
+```{r}
+df_recaudacion <- df_tablas[[8]]
+df_recaudacion |> head(3) # Recaudación
+```
+:::
+
+y tabla 9 de evaluación o crítica.
+
+::: {style="font-size:0.8em;"}
+```{r}
+df_critica <- df_tablas[[9]]
+df_critica |> head(3) # Evaluación
+```
+:::
+
+## Starwars: recaudación
+
+```{r}
+# Corrección de nombre de columnas
+colnames(df_recaudacion) <- as.character(df_recaudacion[1, ])
+  
+df_recaudacion <- df_recaudacion |> 
+  filter(str_detect(Película, 'Star Wars')) |> # Star Wars
+  mutate(across(3:6, \(x) str_remove_all(x, '\\.|\\$')), # Eliminar "." y "$" en números
+         across(3:6, as.integer))
+```
+
+Modifiqué nombres de películas para posteriormente unir ambas bases.
+
+::: {style="font-size:0.8em;"}
+```{r}
+#| echo = FALSE
+df_recaudacion$Película <- df_recaudacion$Película |> str_remove('Star Wars: ')
+df_recaudacion$Película <- coalesce(
+  df_recaudacion$Película |> str_extract('.* - (.*)\\[.*', group = 1),
+  df_recaudacion$Película |> str_extract('^(.*): .*', group = 1)
+)
+
+df_recaudacion$Película[df_recaudacion$Película == 'The Empire Strikes Back'] <- 'Empire Strikes Back'
+df_recaudacion$Película[df_recaudacion$Película == 'Rise of Skywalker']       <- 'The Rise of Skywalker'
+
+df_recaudacion # Dejo fuera "The Clone Wars"
+```
+:::
+
+## Starwars: critica
+
+```{r}
+colnames(df_critica) <- as.character(df_critica[1, ])
+  
+df_critica <- df_critica |> 
+  filter(!(Película %in% c('Película', 'Promedio'))) |> 
+  mutate(across(2:7, \(x) str_extract(x, '\\d.?\\d')), # capturo las notas
+         across(6:7, \(x) str_replace(x, '\\,', '\\.')), # reemplazo ',' por '.'
+         across(2:5, as.integer),
+         across(6:7, as.double)) # transformo strings a números.
+```
+
+::: {style="font-size:0.8em;"}
+```{r}
+df_critica
+```
+:::
+
+## Starwars: recaudación y crítica
+
+Uniremos ambas tablas.
+
+```{r}
+#| fig.dim=c(7, 4)
+df_cyr <- left_join(df_critica, df_recaudacion, by = 'Película')
+
+ggplot(df_cyr,
+       aes(x = Total, y = General)) + 
+  geom_point(size = rel(3)) +
+  ggrepel::geom_label_repel(aes(label = Película)) +
+  scale_x_continuous('Millones de dólares', labels = ~scales::dollar(., scale = 0.000001)) + 
+  labs(title = 'Star Wars: Relación entre recaudación total y crítica (Rotten Tomatoes)') +
+  theme_minimal()
+```
+
+## En el próximo taller ...
+
+-   Manejo de listas con [purrr](https://purrr.tidyverse.org)
+
+-   Manejo de expresiones regulares con [stringr](https://stringr.tidyverse.org)
+
+##  {.smaller}
+
+Presentación y código en GitHub:\
+<https://github.com/caayala/web_scraping_soc40XX_2024>\
+<https://caayala.github.io/web_scraping_soc40XX_2024>
+
+<br>
+
+::: {style="font-size:3em; text-align:center; padding: 50px;"}
+¡Gracias!
+:::
+
+<br> Cristián Ayala\
+<https://blog.desuc.cl/>\
+<http://github.com/caayala>
+
+```{r}
+#| echo = FALSE,
+#| include = FALSE
+
+# Extraer código R
+knitr::purl('class_1.qmd',
+            output = 'class_1.R',
+            quiet = TRUE)
+```
