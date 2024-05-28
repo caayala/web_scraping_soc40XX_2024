@@ -529,6 +529,20 @@ ggplot(df_cyr,
   theme_minimal()
 ```
 
+## Inteligencia Artificial
+
+Prompt a ChatGPT: 
+
+> de la siguiente url: https://es.wikipedia.org/wiki/Star_Wars
+>
+> * toma la tabla de recaudación por película
+> * toma la tabla con evaluación crítica por película
+> * grafica la relación entre recaudación y evaluación de las películas.
+
+
+[Resultado](https://chatgpt.com/share/cd4ca1d3-2cf6-4418-b933-f2f0e6de0e01)
+
+
 ## En el próximo taller ...
 
 -   Manejo de listas con [purrr](https://purrr.tidyverse.org)

@@ -67,10 +67,6 @@ df_recaudacion <- df_recaudacion |>
 
 
 ## -----------------------------------------------------------------------------
-df_recaudacion[, -2] |> tail(4)
-
-
-## -----------------------------------------------------------------------------
 #| echo = FALSE
 df_recaudacion$Película <- df_recaudacion$Película |> str_remove('Star Wars: ')
 df_recaudacion$Película <- coalesce(
