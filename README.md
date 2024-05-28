@@ -7,7 +7,7 @@
 <!-- badges: end -->
 
 Este repositorio contiene el material del curso Web Scraping y acceso a
-datos desde la web, dictado el primer semestre de 2023 por el
+datos desde la web, dictado el primer semestre de 2024 por el
 Departamento de Sociología de la Universidad Católica de Chile a
 estudiantes de educación continua como parte del
 [`Diplomado en Web Scraping y visualización de datos sociales en R`](https://educacioncontinua.uc.cl/programas/webscraping-y-acceso-a-datos-desde-la-web/).
