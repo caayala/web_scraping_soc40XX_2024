@@ -4,7 +4,7 @@ library(rvest)
 url <- 'class_1_files/mi_primer_scraping.html'
 
 if(interactive()){
-  url <- 'class_1_files/mi_primer_scraping.html'
+  url <- 'slides/class_1/class_1_files/mi_primer_scraping.html'
 }
 
 html <- read_html(x = url)
