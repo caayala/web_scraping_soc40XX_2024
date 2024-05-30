@@ -59,7 +59,9 @@ La función principal es `map` y su idea general es:
 
 para cada  
 __`objeto en la lista`__  
-haga __`función`__
+haga __`función`__.
+
+Otra manera de pensar un loop.
 :::
 
 ::: {.column width="50%"}
@@ -70,9 +72,34 @@ haga __`función`__
 
 ::::
 
+## purrr: fundamento 1 {.smaller}
+
+:::: {.columns}
+
+::: {.column width="50%"}
+lista de ejemplo
+
+```{r}
+(l <-  list(a = c('caso' = 1:2),
+            b = c('caso' = 4:5)))
+```
+
+:::
+
+::: {.column width="50%"}
+Sumemos los elementos de cada elemento de la lista con un for--loop.
+
+```{r}
+for (i in seq_along(l)) {
+  print(sum(l[[i]]))
+}
+```
+:::
+
+:::
 
 
-## purrr: fundamento  {.smaller}
+## purrr: fundamento 2 {.smaller}
 
 :::: {.columns}
 
