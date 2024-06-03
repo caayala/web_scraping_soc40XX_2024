@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <!-- CSS externo -->
+    <link rel="stylesheet" href="./scraping_con_css.css">
+
+    <title>Datos de perros</title>
+</head>
+<body>
+  <h1 id='first'>Datos de perros</h1>
+  <p>Comparemos algúnos datos de <b>dos razas de perros.</b></p>
+
+  <table class="ancho">
+    <thead style="background-color: lightgray;"> <!-- CSS inline, directo -->
+      <tr>
+        <th>Raza</th>
+        <th>Esp. Vida</th>
+        <th>Tamaño</th>
+      </tr>
+    </thead>
+    
+    <tbody>
+      <tr>
+        <td class="izq">Terrier</td>
+        <td class="der">15</td>
+        <td class="der">Muy pequeño</td>
+      </tr>
+      <tr>
+        <td class="izq">Akita</td>
+        <td class="der">10</td>
+        <td class="der">Grande</td>
+      </tr>
+    </tbody>
+  </table>
+  
+  <p>Sus imágenes son las siguientes:</p>
+
+  <p>
+    <table id="tabla-imagen-perros">
+      <tbody>
+        <tr>
+          <td>
+            <img src='../images/akita.jpeg' alt="Perro akita"> <br>
+            Akita
+          </td>
+          <td>
+            <img src='../images/terrier.jpeg' alt="Perro terrier"> <br>
+            Terrier
+          </td>
+        </tr>
+      </tbody>
+        <tfoot class = "fuente">
+          <tr>
+            <td colspan="2">
+              Fuente: <a href="https://www.royalcanin.com/es/dogs/breeds/breed-library">Biblioteca de razas de Royal Canin</a>
+            </td>
+          </tr>
+        </tfoot>
+    </table>
+  </p>
+
+ </html>

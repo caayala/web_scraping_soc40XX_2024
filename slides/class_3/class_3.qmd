@@ -1,0 +1,525 @@
+---
+title: |
+  | Clase 3: Web Scraping 
+  | páginas estáticas
+subtitle: "Web scraping y acceso a datos desde la web"
+author: "<br>Cristián Ayala<br> Director DESUC"
+lang: 'es'
+date: '2024-06-04'
+date-format: 'long'
+copyright: "[github.com/caayala](https://github.com/caayala)"
+format: 
+  revealjs:
+    footer: "DESUC Web Scraping, 2024"
+    slide-number: c/t
+    transition: none
+    theme: [moon]
+execute: 
+  cache: true
+# editor: 
+#   mode: source
+---
+
+```{r}
+#| echo = FALSE
+suppressPackageStartupMessages(library(tidyverse))
+library(rvest)
+library(knitr)
+
+opts_chunk$set(cache.path = "class_3_files/class_3_cache/html/")
+```
+
+
+## Recordemos como es una página htm {.smaller}
+
+:::: {.columns}
+
+::: {.column width="50%"}
+- *Elementos*: tags como `title`, `h1`, o `p` que parten y terminan
+  
+- *Atributos*: 
+  - nombres: `id`
+  - clases para CCS: `class`
+  
+- *Contenido*: Lo que queda dentro de los elementos.
+:::
+
+::: {.column width="50%"}
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Título de página</title>
+</head>
+<body>
+  <h1 id='first'>Un encabezado</h1>
+  <p>Algún texto &amp; <b>texto en negrita</b>.</p>
+</body>
+</html>
+```
+:::
+
+::::
+
+
+
+## Página web con la que trabajaremos {.smaller}
+
+:::: {.columns}
+
+::: {.column width="50%"}
+- `h#`: encabezados. Niveles de `h1` a `h6`
+  
+- `p`: párrafos
+  
+- `img`: imagen. Requiere el atributo `src` (no tiene cierre)
+  
+- `table`: tablas
+  
+- `a`: link (*anchor*). Requiere el atributo `href`
+  
+- `<br>`: salto de línea (no tiene cierre)
+:::
+
+::: {.column width="50%"}
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <!-- CSS externo -->
+    <link rel="stylesheet" href="scraping_con_css.css">
+
+    <title>Datos de perros</title>
+</head>
+<body>
+  <h1 id='first'>Datos de perros</h1>
+  <p>Comparemos algúnos datos de <b>dos razas de perros.</b></p>
+
+  <table class="ancho">
+    <thead style="background-color: lightgray;"> <!-- CSS inline, directo -->
+    <tr>
+      <th>Raza</th>
+      <th>Esp. Vida</th>
+      <th>Tamaño</th>
+    </tr>
+    </thead>
+    
+    <tbody>
+    <tr>
+      <td class="izq">Terrier</td>
+      <td class="der">15</td>
+      <td class="der">Muy pequeño</td>
+    </tr>
+    <tr>
+      <td class="izq">Akita</td>
+      <td class="der">10</td>
+      <td class="der">Grande</td>
+    </tr>
+    </tbody>
+    </table>
+  
+  <p>Sus imágenes son las siguientes:</p>
+
+  <p>
+    <table id="tabla-imagen-perros">
+      <tbody>
+        <tr>
+          <td>
+            <img src='../images/akita.jpeg' alt="Perro akita"> <br>
+            Akita
+          </td>
+          <td>
+            <img src='../images/terrier.jpeg' alt="Perro terrier"> <br>
+            Terrier
+          </td>
+        </tr>
+      </tbody>
+        <tfoot class = "fuente">
+          <tr>
+            <td colspan="2">
+              Fuente: <a href="https://www.royalcanin.com/es/dogs/breeds/breed-library">Biblioteca de razas de Royal Canin</a>
+            </td>
+          </tr>
+        </tfoot>
+    </table>
+  </p>
+
+ </html>
+```
+
+[HTML Elements](https://www.w3schools.com/html/html_elements.asp)
+:::
+
+::::
+
+
+
+## El desafio: <br>encontrar lo que nos interesa.
+
+Podemos utilizar varias formas de llegar a ellos:
+
+* Elementos de html por su [`tag`](https://www.w3schools.com/tags/ref_byfunc.asp)
+
+* Mediante selectores de [`css`](https://www.w3schools.com/css/css_selectors.asp)
+
+  * `id` que identifica de manera única algún elemento web 
+  * `clases` de estilos
+  * Combinación de `tags` y `clases`
+
+
+
+## Librería: rvest {.smaller}
+
+[Referencia](https://rvest.tidyverse.org/reference/index.html) de funciones en [rvest](https://rvest.tidyverse.org/reference/index.html) a tener en cuenta
+
+- `xlm2::read_html()`: función exportada por `rvest` para leer páginas web.
+
+- `html_element()` o `html_elements()`: extrae elementos
+
+- `html_attr()` o `html_attrs()`: extraemos atributos
+
+- `html_children()`: extrae elementos bajo cierto nodo
+
+- `html_name()`: extrae el nombre de elementos
+
+- `html_table()`: extrae y transforma a una data frame una tabla html
+
+- `html_text()` o `html_text2()`: extrae texto o contenido
+
+
+
+## html con tabla {.smaller}
+
+```{r}
+#| echo: false
+
+if(interactive()){
+  url <- 'class_3_files/scraping_con_css.html'
+} else {
+  url <- 'class_3_files/scraping_con_css.html'
+}
+
+page <- htmltools::includeHTML(url) # Guardar el texto del html de la url.
+
+page |> gsub('<!DOCTYPE html>\n', '', x = _)
+```
+
+
+
+## Scraping: lectura en R de html con datos
+
+Luego leemos la página en R usando `rvest`.
+
+::: {.smaller}
+```{r}
+#| echo: true
+# read_html(page)
+(html1 <- rvest::read_html(x = url)) # Leer la url directamente.
+```
+:::
+
+
+
+## Scraping: tablas
+
+Podemos capturar las tablas con el tag `<table>` de la página:
+
+```{r}
+html1 |> html_elements('table') |> html_table()
+```
+
+¿Como podemos ser más **_selectivos_**?
+
+
+
+## Selectores de CSS
+
+[CSS Selector Reference](https://www.w3schools.com/CSSref/css_selectors.asp)
+
+* `#id`: elemento de id = `id`
+
+* `tag`: elementos de tipo `<tag>`
+
+* `.class`: elementos de clase `class`
+
+* `tag.class`: elementos de tipo `tag` de clase `class`
+
+Se revisar su funcionamiento [en un ejemplo](https://www.w3schools.com/CSSref/trysel.asp) 
+y entrenar habilidades en [CSS Diner](https://flukeout.github.io).
+
+
+
+## Selectores de CSS: nombres
+
+Analicemos la [página web](./class_3_files/scraping_con_css.html) directamente.
+
+Para encontrar los elementos de interés en la página web, usamos dos herramientas:
+
+- [SelectorGadget](https://rvest.tidyverse.org/articles/selectorgadget.html): 
+Un programa en javascript que puede quedar como [bookmarklet](https://en.wikipedia.org/wiki/Bookmarklet).
+
+- [Web development tools](https://en.wikipedia.org/wiki/Web_development_tools) del navegador de preferencia.
+
+
+
+## Identificación de elementos: SelectorGadget
+
+- [SelectorGadget](https://rvest.tidyverse.org/articles/selectorgadget.html)
+
+![SelectorGadget para encontrar clase de tabla con imagenes](./images/tools_selectorgadget.jpeg)
+
+
+
+## Identificación de elementos: Web development tools
+
+- [Web development tools](https://en.wikipedia.org/wiki/Web_development_tools) del navegador de preferencia.
+
+![Web Inspector en Safari](./images/tools_web_inspector.jpeg)
+
+
+
+## Scraping: tabla según id 1
+
+La segunda tabla tiene como id: `#tabla-imagen-perros`
+
+```{r}
+(df_img_perros <- html1 |> 
+   html_element('#tabla-imagen-perros') |> 
+   html_table())
+```
+
+¿Cómo capturamos los links a las imágenes?
+
+```{r}
+(src_img_perros <- html1 |> html_elements('#tabla-imagen-perros') |> 
+   html_elements('img') |> 
+   html_attr('src'))
+```
+
+
+
+## Scraping: tabla según id 2
+
+Se debe saber cómo manejar distintas secciones de los datos.
+
+```{r}
+# Uso rbind porque tiene menos salvaguardas que `bind_rows`.
+(df_img_perros <- base::rbind(df_img_perros,
+                              src_img_perros))
+```
+
+Queda pivotear la base.
+
+```{r}
+df_img_perros |> 
+  t() |> as.data.frame() |>
+  setNames(nm = c('raza', 'fuente', 'img_src'))
+```
+
+
+
+## Scraping: texto 1
+
+- Seleccionar elemento identificado con `id = first`
+
+```{r}
+html1 |> html_element('#first') |> html_text()
+```
+
+- Selección de todos los `<p>`
+
+```{r}
+html1 |> html_elements('p') |> html_text()
+```
+
+- Selección de `<b>` dentro de `<p>`
+
+```{r}
+html1 |> html_elements('p b') |> html_text()
+```
+
+
+---
+
+## Scraping: texto 2
+
+Selección de todos los elementos `<a>` con atributos `href`
+
+```{r}
+html1 |> html_elements('a[href]')
+```
+
+Selección de todos los elementos con atributo `alt` que contenga la palabra _akita_
+
+```{r}
+html1 |> html_elements('[alt*=akita]')
+```
+
+
+
+## Scraping: Biblioteca 1
+
+Siguiente ejemplo con el sitio [Books to Scrape](http://books.toscrape.com/index.html)
+
+- **¿Cuántos libros hay en cada categoría?**
+
+```{r}
+#| echo: true
+
+url <- 'http://books.toscrape.com/'
+html2 <- read_html(paste0(url, 'index.html'))
+```
+
+Categorías: 
+
+- Dentro de la columna `<ul>` de clase `nav`, <!-- # navegación -->
+selección de los elementos `<ul>` y links `<a>`: <!-- unordered list -->
+
+<!-- ul es innecesario. -->
+
+```{r}
+l_cat <- html2 |> 
+  html_elements('ul.nav ul a')
+
+head(l_cat, 2)
+```
+
+
+
+## Scraping: Biblioteca 2
+
+Construyo data.table con los nombres de categorías y links relacionados.
+
+```{r}
+#| echo: true
+
+df_cat <- tibble(categoria = l_cat |> html_text(),
+                 link      = l_cat |> html_attr('href')) |> 
+  mutate(categoria = stringr::str_squish(categoria))
+
+head(df_cat, 2)
+```
+
+Puedo evitar el uso de `stringr::str_squish` con `rvest::html_text2()`.
+
+
+
+## Scraping: Biblioteca 3
+
+Leamos todas las páginas referidas en los links usando `map()`.
+
+```{r}
+df_cat_hojas <- df_cat |> 
+  mutate(pagina = map(link, \(l) read_html(paste0(url, l))))
+
+head(df_cat_hojas, 3)
+```
+
+::: {.smaller}
+También se podría usar `rowwise()`:
+
+```{r}
+df_cat[1:3, ] |>
+  dplyr::rowwise() |>
+  mutate(pagina = list(read_html(paste0(url, link))))
+```
+:::
+
+
+
+## Scraping: Biblioteca 4
+
+¿Cómo detecto el número de libros de cada categoría? 
+
+Número _total de libros_ aparece como dato en la página.
+
+```{r}
+# Creo una función para reutilizar el código más adelante.
+
+f_n_libros <- function(.html){
+  html_elements(.html, '.form-horizontal strong:first-of-type') |> html_text()
+}
+```
+
+```{r}
+html2 |> f_n_libros()
+```   
+
+
+## Scraping: Biblioteca 5 {.smaller}
+
+Extraigo el número de libros de cada categoría usando `map()`.
+
+```{r}
+df_cat_hojas <- df_cat_hojas |> 
+  mutate(n_libros = map_chr(pagina, f_n_libros),
+         n_libros = as.integer(n_libros))
+
+df_cat_hojas |> head(3)
+```
+
+Cantidad de categorías según cantidad de libros.
+
+```{r}
+table(df_cat_hojas$n_libros, useNA = 'ifany') |> sort()
+```
+También podría usarse `rowwise()`.
+
+```{r}
+df_cat_hojas |> 
+  rowwise() |> 
+  mutate(n_libros = f_n_libros(pagina),
+         n_libros = as.integer(n_libros)) |> 
+  head(3)
+```
+
+
+
+## Scraping: Biblioteca 5 {.smaller}
+
+```{r}
+#| fig-dim: c(14, 4)
+
+df_cat_hojas |> 
+  ggplot(aes(x = fct_reorder(categoria, -n_libros), y = n_libros)) + 
+  geom_col() + 
+  scale_x_discrete(NULL, guide = guide_axis(angle = 90)) +
+  labs(title = 'Número de libros por categoría') + theme_minimal()
+```
+
+
+
+## En el próximo taller… 
+
+- Ejemplos de captura de sitios web
+
+- Operaciones en data.frames por filas con [dplyr::rowwise()](https://dplyr.tidyverse.org/articles/rowwise.html)
+
+
+## {.smaller}
+
+Presentación y código en GitHub:\
+<https://github.com/caayala/web_scraping_soc40XX_2024>\
+<https://caayala.github.io/web_scraping_soc40XX_2024>
+  
+<br>
+  
+::: {style="font-size:3em; text-align:center; padding: 50px;"}
+¡Gracias!
+:::
+  
+<br> 
+Cristián Ayala\
+<https://blog.desuc.cl/>\
+<http://github.com/caayala>
+  
+```{r}
+#| echo = FALSE,
+#| include = FALSE
+
+# Extraer código R
+knitr::purl('class_3.qmd',
+            output = 'class_3.R',
+            quiet = TRUE)
+```

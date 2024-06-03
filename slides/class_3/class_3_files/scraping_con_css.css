@@ -1,0 +1,41 @@
+/* Selector de elementos o tags */
+body {
+  font-size: 1.1em;
+}
+
+img {
+  max-height: 100px;
+}
+
+b {
+  color: royalblue;
+}
+
+thead {
+  color: darkblue;
+}
+
+/* Selector de clase */
+td.izq { /* estilo izq solo para elementos td */
+  text-align:left;
+}
+
+td.der { /* estilo der solo para elementos td */
+  text-align:right;
+}
+
+.ancho { /* estilo ancho para cualquier elemento */
+  width: 300px;
+}
+
+.fuente {
+  font-size: xx-small;
+  text-align: left;
+}
+
+/* Selector de id */
+#tabla-imagen-perros {
+  background-color: rgb(120, 215, 231);
+  padding: 10px;
+  text-align: center;
+} 
