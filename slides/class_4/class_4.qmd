@@ -1,0 +1,113 @@
+---
+title: |
+  | Clase 4: Captura de páginas web
+subtitle: "Web scraping y acceso a datos desde la web"
+author: "<br>Cristián Ayala<br> Director DESUC"
+lang: 'es'
+date: '2024-06-06'
+date-format: 'long'
+copyright: "[github.com/caayala](https://github.com/caayala)"
+format: 
+  revealjs:
+    footer: "DESUC Web Scraping, 2024"
+    slide-number: c/t
+    transition: none
+    theme: [solarized]
+execute: 
+  echo: true
+---
+
+
+## Hoy veremos
+
+- Ejemplos de captura de sitios web
+
+- Operaciones en data.frames por filas con [dplyr::rowwise()](https://dplyr.tidyverse.org/articles/rowwise.html)
+
+
+
+## APIs {.smaller}
+
+Una [Web API](https://en.wikipedia.org/wiki/API#Web_APIs) 
+---*application programming interface*--- permite interactuar con una página web. 
+En su forma **más sencilla**, entrega variables mediante la url.
+
+Como ejemplo genérico:
+
+* `http://sitioweb.cl/key?param_1=val_1&param_2=val_2`
+
+Esta URL se compone de:
+
+- `http://sitioweb.cl` URL base
+- `key` alguna tocken de autentificación
+- `?param_1=val_1&param_2=val_2`, una lista de parámetros que llegarán al servidor
+
+Ejemplo: <https://www.google.com/search?q=sociologia+uc+desuc>
+
+
+
+## Motivación
+
+- Revisar y capturar sitios web.
+
+- Lectura y seguimiento de links para lograr datos estructurados.
+
+
+
+## Ejemplo 1: Biblioteca
+
+[Books to Scrape](http://books.toscrape.com/index.html)
+
+- Iteración entre páginas web
+- Uso de [list columns](https://dcl-prog.stanford.edu/list-columns.html)
+
+
+
+## Ejemplo 2: Hockey Teams
+
+[Hockey Teams](https://www.scrapethissite.com/pages/forms/)
+
+- Forms
+- Searching
+- Pagination
+
+
+
+## Ejemplo 3: Oscar Winning Films
+
+[Oscar Winning Films](https://www.scrapethissite.com/pages/ajax-javascript)
+
+- [AJAX](https://en.wikipedia.org/wiki/Ajax_(programming)) ---Asynchronous JavaScript and XML
+
+
+
+## Ejemplo 4: SPD Centro de documentación
+
+[CEAD](http://cead.spd.gov.cl/centro-de-documentacion/)
+
+- Bajar archivos
+
+
+
+## Taller: sitios web
+
+Vamos al [código](class_4_taller.R).
+
+
+
+##  {.smaller}
+
+Presentación y código en GitHub:\
+<https://github.com/caayala/web_scraping_soc40XX_2024>\
+<https://caayala.github.io/web_scraping_soc40XX_2024>
+
+<br>
+
+::: {style="font-size:3em; text-align:center; padding: 50px;"}
+¡Gracias!
+:::
+
+<br> 
+Cristián Ayala\
+<https://blog.desuc.cl/>\
+<http://github.com/caayala>
