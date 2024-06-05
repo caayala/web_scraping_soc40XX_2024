@@ -1,0 +1,50 @@
+---
+title: "Control 2"
+subtitle: "Web scraping y acceso a datos desde la web"
+author: "Cristián Ayala"
+date: "2024-06-13"
+lang: "es"
+format:
+  html:
+    page-layout: article
+    self-contained: false
+---
+
+```{r, echo=FALSE}
+```
+
+Ponderación
+
+: 20% de la nota final del curso
+
+Formato
+
+:   Desarrollar esta tarea con [Quarto](https://quarto.org/docs/get-started/hello/rstudio.html) o [Rmarkdown](https://rmarkdown.rstudio.com/lesson-1.html) generando un `.pdf`, agregando comentarios cuando sea necesario.
+
+### Objetivo: 
+
+Interesa indagar sobre el cine chileno. Queremos saber la evolución del número de películas chilenas estrenadas por año y su calificación según la nota dada por IMDb.
+
+Para ello usaremos el sitio web [IMDb](https://www.imdb.com) para filtrar películas chilenas realizadas en Chile. 
+En total son **465**[^1] según se muestra en esta búsqueda:
+
+<https://www.imdb.com/search/title/?title_type=feature&countries=cl&locations=chile>
+
+[^1]: Número de películas al momento de diseñar este control.
+
+## Tareas:
+
+1) Desde esa página web capturar los siguientes datos de esas 314 películas:
+
+    * Título
+    * Año de estreno
+    * Puntaje IMDb
+    * Géneros
+
+2) Guardar esa información en un data.frame
+
+3) Graficar la evolución del el *número de películas* (eje y) estrenadas por *año* (eje x).
+
+5) Graficar la evolución del el *ranking IMDb* promedio (eje y) *estrenadas desde 1990* a la fecha (eje x).
+
+6) ¿Cuál es el *género* que tienen el *mejor puntaje promedio* considerando películas estrenadas desde 1990 a la fecha?
