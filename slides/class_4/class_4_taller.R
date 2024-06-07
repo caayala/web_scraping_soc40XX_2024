@@ -434,21 +434,6 @@ s_ajax <- httr2::request(url_ajax) |>
   httr2::req_url_query(ajax = 'true', 
                        year = 2010)
 
-s_ajax
-
-s_ajax |> 
-  httr2::req_dry_run()
-
-# Capturo información desde Internet.
-s_ajax_resp <- s_ajax |> 
-  httr2::req_perform()
-
-s_ajax_resp
-
-s_ajax_resp |> 
-  httr2::resp_body_json() |> 
-  str(2)
-
 
 ### Bajar archivos ----
 # Prueba con un link
