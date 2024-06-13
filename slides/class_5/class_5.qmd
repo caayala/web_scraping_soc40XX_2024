@@ -543,13 +543,13 @@ try(req_advance |>
       f_container_row())
 ```
 
-2. Indicar que agente hace el requerminento `user-agent()`.
+2. Indicar que agente hace el requerimiento `user-agent()`.
 
 ```{r}
 #| echo: true
 
 try(req_advance |> 
-      req_headers(Accept = "text/html") |> 
+      req_headers(Accept = "text/html") |>
       req_user_agent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15") |> 
       f_container_row())
 ```
