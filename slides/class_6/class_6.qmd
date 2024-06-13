@@ -1,0 +1,97 @@
+---
+title: |
+  | Clase 6: Captura de páginas web
+subtitle: "Web scraping y acceso a datos desde la web"
+author: "<br>Cristián Ayala<br> Director DESUC"
+lang: 'es'
+date: '2024-06-13'
+date-format: 'long'
+copyright: "[github.com/caayala](https://github.com/caayala)"
+format: 
+  revealjs:
+    footer: "DESUC Web Scraping, 2024"
+    slide-number: c/t
+    transition: none
+    theme: [solarized]
+execute: 
+  echo: true
+---
+
+
+
+## Hoy veremos
+
+- Ejemplos de captura de sitios web
+
+  - [Moodle Ciencias Sociales UC](https://cursosonline.cienciassociales.uc.cl).
+
+  - Sitio web de [Ciudades Saludables](https://www.ciudadesamigables.cl).
+  
+  - Relacionar lo visto con el uso de APIs en clases siguientes.
+  
+    - Revisar [YouTube Data API](https://developers.google.com/youtube/v3).
+
+
+
+## Ejemplo 1: Moodle Ciencias Sociales UC {.smaller}
+
+[cursosonline.cienciassociales.uc.cl](https://cursosonline.cienciassociales.uc.cl)
+
+- Necesitaremos manejar de manera *segura* nuestros [secretos](https://cran.r-project.org/web/packages/httr/vignettes/secrets.html).
+
+  - Contraseñas o TOKENS para acceso a servicios.
+  
+- Uso de variables de entorno: `usethis::edit_r_environ()`.
+
+```
+# Dentro del archivo .Renviron
+
+CLAVE=password
+```
+
+Se accede a las variables contenidas en él:
+
+```{r}
+Sys.getenv('PASSWORD_TEST')
+```
+
+
+
+## Ejemplo 2: Ciudades Amigables
+
+[Ciudades amigables](https://www.ciudadesamigables.cl/comunas-amigables/)
+
+- Header spoofing
+
+
+
+## Ejemplo 3: YouTube Data API
+
+Uso de [YouTube Data API](https://developers.google.com/youtube/v3/docs) 
+
+- Mostrar la relación entre lo ya visto y el uso de APIs de servicios web.
+
+
+
+## Taller: sitios web
+
+Vamos al [código](class_6_taller.R).
+
+
+
+## {.smaller}
+
+Presentación y código en GitHub:\
+<https://github.com/caayala/web_scraping_soc40XX_2024>\
+<https://caayala.github.io/web_scraping_soc40XX_2024>
+
+<br>
+
+::: {style="font-size:3em; text-align:center; padding: 50px;"}
+¡Gracias!
+:::
+
+<br> 
+Cristián Ayala\
+<https://blog.desuc.cl/>\
+<http://github.com/caayala>
