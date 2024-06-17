@@ -1,0 +1,620 @@
+---
+title: |
+  | Clase 7: Uso de googlesheets4 
+subtitle: "Web scraping y acceso a datos desde la web"
+author: "<br>Cristián Ayala<br> Director DESUC"
+lang: 'es'
+date: '2024-06-18'
+date-format: 'long'
+copyright: "[github.com/caayala](https://github.com/caayala)"
+format: 
+  revealjs:
+    footer: "DESUC Web Scraping, 2024"
+    slide-number: c/t
+    transition: none
+    theme: [moon]
+execute: 
+  cache: true
+  echo: true
+fig-align: center
+# editor: 
+#   mode: source
+---
+
+
+```{r}
+#| echo = FALSE
+suppressPackageStartupMessages(library(tidyverse))
+library(labelled)
+library(knitr)
+
+opts_chunk$set(cache.path = "class_7_files/class_7_cache/html/")
+```
+
+
+
+## Presentación de proyectos finales
+
+Cada cual deberá presentar:
+
+- Nombre de su proyecto
+
+- Pregunta de investigación que motiva la elección
+
+- Sitio web desde donde obtendrá la data. <br>
+  (Pegar URL en el chat del curso para acceder a él)
+
+
+
+## Motivación
+
+- Disponer de lugares desde donde se puedan leer y guardar datos durante su recolección, análisis y difusión.
+
+- Disminuir la cantidad de pasos manuales que puedan provocar errores en la transferencia de información.
+
+- Ejemplo: Leer una planilla para procesar datos de una encuesta y guardar una tabla de frecuencia en una planilla nueva.
+
+
+
+## Paquetes para la clase de hoy
+
+Grupo de paquetes interrelacionados:
+
+- [googledrive](https://googledrive.tidyverse.org) : interacción con archivos completos en Google Drive.
+
+- [googlesheets4](https://googlesheets4.tidyverse.org): interacción con planillas en Google Sheet.
+
+Mención para:
+
+- [gargle](https://gargle.r-lib.org): Maneja ---tras bambalinas--- la autentificación con Google para usar sus APIs.
+
+
+
+## Autentificación {.smaller}
+
+:::: {.columns}
+
+::: {.column width="50%"}
+- Manejo de [secretos](https://cran.r-project.org/web/packages/httr/vignettes/secrets.html): 
+administración de claves y tokens de acceso.
+
+- Necesitamos guardar un token para acceder a la API de Google Sheets:
+
+> Every request your application sends to the Google Sheets API needs to [identify your application to Google](https://developers.google.com/sheets/api/guides/authorizing). There are two ways to identify your application: using an OAuth 2.0 token (which also authorizes the request) and/or using the application's API key.
+
+- `gargle` tiene eso cubierto. Para registrarse:
+
+- Credenciales quedan guardadas en `~/Library/Caches/gargle` (para macOS).
+:::
+
+::: {.column width="50%"}
+- Lista de tokens que tengo almacenado:
+
+```{r}
+#| message: true
+gargle::gargle_oauth_sitrep()
+```
+:::
+
+::::
+
+
+
+## Google Sheets: estructura de links {.smaller}
+
+El link a una planilla en Google Sheets tiene la siguiente forma:
+
+`https://docs.google.com/spreadsheets/d/PLANILLA_ID/edit#gid=HOJA_ID`
+
+En nuestro ejemplo:
+
+- PLANILLA_ID: `ss` (spreadsheet_id) `1rujigrFqSaSLjsSvrMZY4IU3CSLiM_ymd-wtst9BYNQ`
+- HOJA_ID: (sheet_id) `398551276`
+
+::: {.smaller}
+Hoja *Web Scraping - Bicentenario UC* queda así:
+
+```{r}
+httr2::url_parse('https://docs.google.com/spreadsheets/d/1rujigrFqSaSLjsSvrMZY4IU3CSLiM_ymd-wtst9BYNQ/edit#gid=398551276') |> 
+  discard(is.null)
+```
+:::
+
+
+
+## Google Drive: búsqueda de archivo 1
+
+[Planilla][planilla] la respuesta a tres preguntas de Bicentenario 2020.
+
+[planilla]:https://docs.google.com/spreadsheets/d/1rujigrFqSaSLjsSvrMZY4IU3CSLiM_ymd-wtst9BYNQ
+
+```{r}
+library(googledrive)
+# Elección de cuenta si es que se tienen varias
+options(gargle_oauth_email = "caayala@uc.cl")
+```
+
+- Para encontrar indicadores de un archivo en Google Drive, `googledrive` provee funciones para su búsqueda:
+
+```{r}
+# Solo spreadsheet
+# Al acceder al servicio por primera vez, debiese preguntar por las credenciales.
+(ss_b <- googledrive::drive_find('Web Scraping', 
+                                 type = 'spreadsheet'))
+```
+
+
+
+## Google Drive: búsqueda de archivo 2 {.smaller}
+
+El indicador del archivo:
+
+
+```{r}
+ss_b$drive_resource |> str(1)
+```
+
+Contiene mucha otra información:
+
+```{r}
+ss_b$drive_resource[[1]] |> names()
+```
+
+
+
+## Google Drive: búsqueda de archivo 3
+
+También se pueden buscar entre otros tipos de archivos:
+
+```{r}
+# Solo archivos pdf
+googledrive::drive_find('Cuestionario Bicentenario', type = 'pdf')
+```
+
+O buscar entre todo:
+
+```r 
+# Todo tipo de archivos. Toma su tiempo
+googledrive::drive_find('Web Scraping')
+```
+
+
+
+## Google Sheets: autentificación y lectura 1 {.smaller}
+
+```{r}
+library(googlesheets4)
+```
+
+Se puede individualizar un archivo mediante su `dribble`, a partir 
+
+```{r}
+class(ss_b)
+```
+
+```{r}
+# Al acceder al servicio por primera vez, debiese preguntar por las credenciales.
+df_1 <- read_sheet(ss = ss_b,
+                   sheet = 'bicentenario_2020.csv')
+head(df_1)
+```
+
+
+
+## Google Sheets: autentificación y lectura 2 {.smaller}
+
+Acceso con la url completa:
+
+```{r}
+url_sheet <- 'https://docs.google.com/spreadsheets/d/1rujigrFqSaSLjsSvrMZY4IU3CSLiM_ymd-wtst9BYNQ/'
+
+df_2 <- read_sheet(ss = url_sheet,
+                   sheet = 'bicentenario_2020.csv')
+```
+
+::: {.smaller}
+```{r}
+head(df_2)
+```
+:::
+
+
+## Google Sheets: autentificación y lectura 3 {.smaller}
+
+Acceso sabiendo el id de la planilla:
+
+```{r}
+ss <- '1rujigrFqSaSLjsSvrMZY4IU3CSLiM_ymd-wtst9BYNQ'
+
+df_3 <- read_sheet(ss = ss,
+                   sheet = 'bicentenario_2020.csv')
+```
+
+::: {.smaller}
+```{r}
+head(df_3)
+```
+:::
+
+
+
+## Google Sheets: Características de la planilla 1 {.smaller}
+
+Datos del archivo mediante su `ss_id` o `dribble` (ss_b):
+
+```{r}
+gs4_get(ss)
+```
+
+
+
+## Google Sheets: Características de la planilla 2 {.smaller}
+
+Datos de las hojas del archivo: Útil para tener el `HOJA_ID`.
+
+```{r}
+sheet_properties(ss)
+```
+
+
+
+## Lectura de hojas 1
+
+`read_sheet` entrega una `tibble`. Se debe indicar una hoja.
+
+```{r, message=FALSE}
+df_base <- read_sheet(ss, sheet = 'bicentenario_2020.csv')
+df_niv  <- read_sheet(ss, sheet = 'niveles')
+df_var  <- read_sheet(ss, sheet = 'variables')
+```
+
+Lectura como list--column:
+
+```{r, message=FALSE}
+head(df_var, 4)
+```
+
+
+
+## Lectura de hojas 2
+
+Control del tipo de variable de cada columna con atributo `col_types`.
+
+```{r, message=FALSE}
+df_var  <- read_sheet(ss, sheet = 'variables',
+                      col_types = 'c') # tipo de variable se recicla.
+
+head(df_var, 4)
+```
+
+
+
+## Lectura de información por celda 1 {.smaller}
+
+`range_read_cells` permite leer información en cada celda: 
+
+- valores: `cell_data = c("default")`
+- valores y formato: `cell_data = c("full")`
+
+```{r}
+df_cels <- range_read_cells(ss, sheet = 'bicentenario_2020.csv', 
+                            cell_data = 'default')
+
+head(df_cels, 3)
+```
+
+
+
+## Lectura de información por celda 2
+
+Información de valores por celda:
+
+::: {.smaller}
+```{r}
+df_cels[1, ] |> str()
+```
+:::
+
+
+
+## Lectura de información por celda 3
+
+Información de la primera celda
+
+```{r}
+df_cels$cell[[1]]
+```
+
+
+
+## Lectura de información por celda 4 {.smaller}
+
+Extraer el dato de valor formateado `formattedValue` para cada celdilla.
+
+```{r}
+df_cels |> 
+  rowwise() |> 
+  mutate(formattedValue = pluck(cell, 'formattedValue'))
+```
+
+
+
+## Lectura de información completa 1
+
+- Leeremos valores y formato.
+
+```{r}
+df_cels_full <- range_read_cells(ss, sheet = 'bicentenario_2020.csv', 
+                                 cell_data = 'full')
+
+head(df_cels_full)
+```
+
+
+
+## Lectura de información completa 2
+
+Mucha mayor información sobre formato.
+
+::: {.smaller}
+```{r}
+df_cels_full[1, ]$cell |> str(3)
+```
+
+Podemos trabajar con esta información.
+:::
+
+
+
+## Lectura de información completa 3
+
+Extracción del color de las celdas para obtener el folio de celdas con valor perdido:
+
+```{r}
+df_cels_folio_color <- df_cels_full |> 
+  filter(col == 1) |>  # Folio está en columna 1
+  rowwise() |> 
+  mutate(formattedValue = pluck(cell, 'formattedValue') |> 
+           str_trunc(width = 15),
+         backgroundColorStyle = list(
+           pluck(cell, 'effectiveFormat', 'backgroundColor')
+           ))
+
+# Sencillo revisar los colores como hex: 
+df_cels_folio_color$hex <- map_chr(df_cels_folio_color$backgroundColorStyle, 
+                                   ~rlang::inject(rgb(!!!.)))
+
+table(df_cels_folio_color$hex)
+```
+
+
+
+## Lectura de información completa 4
+
+Folios destacados en la base original por tener color de fondo `#F4CCCC`
+
+```{r}
+df_cels_folio_color |> 
+  filter(hex == '#F4CCCC') |> 
+  pull(formattedValue)
+```
+
+
+
+## Base de datos: variables
+
+Nombre de variables:
+
+```{r}
+df_var_orden <- df_var[match(names(df_base), df_var$bicentenario_2020.csv), ]
+
+names(df_base) <- df_var_orden$variables
+
+head(df_base, 2)
+```
+
+Etiquetas de variables:
+
+```{r}
+labelled::var_label(df_base) <- df_var_orden$bicentenario_2020.csv
+```
+
+
+
+## Base de datos: valores 1
+
+Etiquetas de valores:
+
+```{r}
+df_niveles <- df_niv |> 
+  tidyr::nest(.by = tipo,
+              .key = 'niveles') |> 
+  rowwise() |> 
+  mutate(niveles = list(deframe(rev(niveles))))
+
+df_niveles
+```
+
+
+
+## Base de datos: valores 2
+
+Etiquetas de valores:
+
+```{r}
+df_niveles |> str(3)
+```
+
+
+
+## Base de datos: valores 3
+
+Vector que relaciona variable y tipo de escalas asociadas.
+
+```{r}
+v_values <- df_var_orden |> 
+  filter(!is.na(tipo)) |> 
+  pull(tipo, variables)
+
+v_values
+```
+
+Se usará para agregar las etiquetas en las variables correspondientes.
+
+
+
+## Base de datos: valores 4 {.smaller}
+
+Lista de variables con sus etiquetas.
+
+```{r}
+value_list <- structure(df_niveles$niveles[match(as.character(v_values), 
+                                                 df_niveles$tipo)],
+                        names = names(v_values))
+value_list
+```
+
+
+
+## Base de datos: valores 5 {.smaller}
+
+Agregar valores según vector anterior.
+
+```{r}
+df_base <- df_base |> 
+  labelled::set_value_labels(!!!value_list)
+
+df_base |> 
+  head()
+```
+
+
+
+## Respuestas: tabla de frecuencia 1 {.smaller}
+
+Construir tabla de resultados de `s1_1` según sexo y categoría de edad
+
+```{r}
+df_base_fct <- df_base |> 
+  mutate(across(everything(), as_factor))
+
+df_base_fct |> 
+  head(3)
+```
+
+
+
+## Respuestas: tabla de frecuencia 2 {.smaller}
+
+Función para número de respuesta por categoría y variable
+
+```{r}
+f_tabla <- function(.df, .cat, .var){
+  .df |> 
+    count({{ .cat }}, {{ .var }}) |> 
+    pivot_wider(names_from = {{ .cat }}, 
+                values_from = n)  
+}
+
+df_tabla <- map(rlang::exprs(sexo, tramo_edad), 
+                \(x) f_tabla(df_base_fct, !!x, s1_1))
+
+df_tabla
+```
+
+
+
+---
+
+## Respuestas: tabla de frecuencia 3 {.smaller}
+
+
+Función para número de respuesta por categoría y variable
+
+```{r}
+df_tabla <- df_tabla |> 
+  reduce(left_join, by = 's1_1')
+
+df_tabla
+```
+
+
+
+## Escribir en Google Sheets 1 {.smaller}
+
+Escritura de tabla de frecuencia en nueva hoja en la [planilla][planilla].
+
+- Esto debiese ser posible solo para quienes tienen *permisos de edición* de la hoja.
+
+No considera el formato de la hoja de destino, mostrando una tabla:
+
+```{r}
+#| message: false
+
+# Reemplaza formatos en la hoja de destino
+df_tabla |> 
+  sheet_write(ss,
+              sheet = 'resultados')
+```
+
+
+
+
+## Escribir en Google Sheets 2 {.smaller}
+
+Eliminar contenido en hoja `resultados`
+
+```{r}
+#| message: false
+
+range_clear(ss, sheet = 'resultados', reformat = TRUE)
+```
+
+Considerando el formato de la hoja de destino
+
+```{r}
+# NO reemplaza formatos en la hoja de destino
+range_write(ss,
+            df_tabla,
+            sheet = 'resultados',
+            reformat = FALSE)
+```
+
+
+
+## En el próximo taller… 
+
+- Programación con dplyr.
+
+- Autentificación
+
+- de Google Drive y Google Sheets
+
+
+
+## {.smaller}
+
+Presentación y código en GitHub:\
+<https://github.com/caayala/web_scraping_soc40XX_2024>\
+<https://caayala.github.io/web_scraping_soc40XX_2024>
+
+<br>
+
+::: {style="font-size:3em; text-align:center; padding: 50px;"}
+¡Gracias!
+:::
+
+<br> 
+Cristián Ayala\
+<https://blog.desuc.cl/>\
+<http://github.com/caayala>
+
+
+```{r}
+#| include: false
+
+# Extraer código R
+knitr::purl('class_7.qmd',
+            output = 'class_7.R',
+            quiet = TRUE)
+```
