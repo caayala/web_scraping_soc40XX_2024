@@ -32,20 +32,6 @@ opts_chunk$set(cache.path = "class_7_files/class_7_cache/html/")
 ```
 
 
-
-## Presentación de proyectos finales
-
-Cada cual deberá presentar:
-
-- Nombre de su proyecto
-
-- Pregunta de investigación que motiva la elección
-
-- Sitio web desde donde obtendrá la data. <br>
-  (Pegar URL en el chat del curso para acceder a él)
-
-
-
 ## Motivación
 
 - Disponer de lugares desde donde se puedan leer y guardar datos durante su recolección, análisis y difusión.
@@ -584,11 +570,11 @@ range_write(ss,
 
 ## En el próximo taller… 
 
+- Presentación proyectos finales.
+
 - Programación con dplyr.
 
-- Autentificación
-
-- de Google Drive y Google Sheets
+- Autentificación de Google Drive y Google Sheets
 
 
 

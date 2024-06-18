@@ -1,0 +1,557 @@
+---
+title: "Control 2, respuestas"
+subtitle: |
+  | Web Scraping y acceso a datos desde la web
+author: "Cristián Ayala"
+execute: 
+  warning: false 
+lang: 'es'
+format:
+  pdf: 
+    number-sections: true
+    fontsize: '10pt'
+---
+
+```{r}
+#| echo: false
+suppressPackageStartupMessages(library(tidyverse))
+library(rvest)
+library(httr2)
+```
+
+Ponderación
+
+: 20% de la nota final del curso
+
+Formato
+
+:   Desarrollar esta tarea con [Quarto](https://quarto.org/docs/get-started/hello/rstudio.html) o [Rmarkdown](https://rmarkdown.rstudio.com/lesson-1.html) generando un `.pdf`, agregando comentarios cuando sea necesario.
+
+# Objetivo: 
+
+Interesa indagar sobre el cine chileno. Queremos saber la evolución del número de películas chilenas estrenadas por año y su calificación según la nota dada por IMDb.
+
+Para ello usaremos el sitio web [IMDb](https://www.imdb.com) para filtrar películas chilenas realizadas en Chile. 
+En total son **465**[^1] según se muestra en esta búsqueda:
+
+<https://www.imdb.com/search/title/?title_type=feature&countries=cl&locations=chile>
+
+[^1]: Número de películas al momento de diseñar este control.
+
+# Tareas:
+
+## Captura de datos 1 página
+
+1) Desde esa página web se puede capturar las primeras 25 películas. 
+
+Los objetos están dentro de `<div>` con clase `.cVXqoq`.
+
+  - Index y título: `.ipc-title`
+  - Año de estreno: `.dli-title-metadata-item`
+  - Puntaje Metacritic: `.metacritic-score-box`
+  - Puntaje IMDb: `.ratingGroup--imdb-rating`
+
+### Lectura web
+
+La página inicial carga 25 películas.
+
+El género se puede encontrar en la página de cada película.
+
+```{r}
+url_1 <- 'https://www.imdb.com/search/title/?title_type=feature&countries=cl&locations=chile'
+url_parse_1 <- url_parse(url_1)
+
+l_pelicula_1_html <- read_html(url_build(url_parse_1))
+```
+
+¿Cuántas son las películas totales que están presente en la búsqueda?
+
+```{r}
+n_peliculas <- l_pelicula_1_html |> 
+  html_elements('.gJQFCa') |> 
+  html_text2()
+
+n_peliculas <- n_peliculas |> 
+  str_extract(' of (\\d+)', group = 1) |> 
+  as.integer()
+
+n_peliculas
+```
+
+```{r}
+l_pelicula_1_html |> 
+  html_elements('.cVXqoq .ipc-title') |> 
+  html_text2()
+```
+
+### data.frame
+
+Selección de datos de interés
+
+```{r}
+# Obtener lista de nodo de películas
+selectores <- c(index_titulo  = '.ipc-title',
+                anio_duracion_clasificacion   = '.dli-title-metadata-item',
+                rating_meta = '.metacritic-score-box',
+                rating_imdb = '.ratingGroup--imdb-rating')
+
+# Función para extraer la información de cada página capturada.
+f_capturar_elementos <- function(.html, 
+                                 .selector, 
+                                 .names_sel){
+
+  html <- .html |> 
+    html_elements('.cVXqoq') # caja de cada película.
+
+  # Captura general del elemento de interés.
+  data <- html |>
+    html_element(.selector) |>
+    html_text() |>
+    str_squish()
+
+  l_data <- setNames(list(data),
+                     nm = .names_sel)
+
+  # Captura de link a la película solo si estoy viendo elemento nominado título
+  if (.names_sel == 'index_titulo'){
+    links <- html |>
+      html_element(paste0(.selector, ' a')) |>
+      html_attr('href')
+
+    l_data <- append(l_data,
+                     list(link = links))
+  }
+
+  # Devuelvo los datos capturados: un vector con texto y links.
+  l_data
+}
+
+# Itero todos los selectores en la única página que capturamos.
+l_peliculas <- map(list(l_pelicula_1_html),
+                   \(l_pel){
+                     map2(selectores, names(selectores),
+                          \(selector, names_sel){
+                            f_capturar_elementos(l_pel, selector, names_sel)
+                          }
+                     )
+                   }
+)
+
+# Función para construir una df a partir de lo capturado.
+datos_a_df <- function(.datos){
+  list_flatten(.datos) |> # quita un nivel
+    discard(is.null) |>  # elimina variables vecias
+    as_tibble() # transforma listas a df
+}
+
+# Lista de tibbles de cada página
+l_peliculas_df <- l_peliculas |> 
+  map(datos_a_df)
+
+# Creación de tibble única
+df_peliculas <- l_peliculas_df |> 
+  list_rbind()
+  
+df_peliculas |> dim()
+```
+
+Mejora de nombres de las columnas de `df_peliculas`. 
+
+```{r}
+names(df_peliculas) <- str_replace(names(df_peliculas), "^(.*)_\\1$", "\\1")
+
+df_peliculas |> names()
+```
+
+2) Guardar esa información en un data.frame
+
+```{r}
+head(df_peliculas)
+```
+
+Lectura de cada página de películas en la lista
+
+```{r}
+df_peliculas <- df_peliculas |> 
+  mutate(index_titulo_link = paste0('https://www.imdb.com', index_titulo_link))
+
+df_peliculas <- df_peliculas |> 
+  rowwise() |> 
+  mutate(web_titulo = list(read_html(index_titulo_link)))
+```
+
+Extracción de género por película
+
+```{r}
+f_genero <- function(.html){
+  .html |> 
+    html_elements('.ipc-chip--on-baseAlt') |> 
+    html_text2()
+}
+
+df_peliculas <- df_peliculas |> 
+  mutate(genero = list(f_genero(web_titulo))) |> 
+  ungroup()
+```
+
+Corregiremos alguna de las variables extraídas para el análisis siguiente.
+
+```{r}
+df_peliculas <- df_peliculas |> 
+  separate_wider_delim(index_titulo, 
+                       delim = '. ',
+                       names = c('index', 'titulo')) |> 
+  separate_wider_regex(rating_imdb, 
+                       patterns = c(rating_imdb = '.*', ' \\(', votes_imdb = '.*', '\\)$'))
+
+df_peliculas <- df_peliculas |> 
+  mutate(across(c(index, rating_meta), as.integer),
+         across(c(rating_imdb), as.double),
+         anio = as.Date(paste0(anio_duracion_clasificacion, '-01-01', '%Y-%M-$d')))
+
+head(df_peliculas)
+```
+
+
+### Análisis
+
+#### Número de películas
+
+3) Graficar la evolución del el *número de películas* (eje y) estrenadas por *año* (eje x).
+
+```{r}
+df_peliculas_anio <- df_peliculas |> 
+  count(anio, name = 'n_peliculas')
+
+f_gg_peliculas_anio <- function(.df){
+  .df |>   
+    ggplot(aes(x = anio, y = n_peliculas)) +
+    geom_col() +
+    scale_x_date('Años', expand = expansion(add = c(100, 0))) +
+    scale_y_continuous(expand = expansion(add = c(0.5, 0))) + 
+    labs(title = 'Películas chilenas por año en IMDb',
+         caption = 'Fuente: IMDb.com. Web Scraping y acceso a datos desde la web',
+         y = 'Número de películas') +
+    theme_minimal()
+}
+
+df_peliculas_anio |> 
+  f_gg_peliculas_anio()
+```
+
+#### Rating 
+
+5) Graficar la evolución del el *rating IMDb* promedio (eje y) *estrenadas desde 1990* a la fecha (eje x).
+
+```{r}
+f_df_peliculas_rank <- function(.df,
+                                .ranking){
+  .df |> 
+    filter(anio >= as.Date("1990-01-01")) |> 
+    summarise(n_peliculas = n(),
+              rating_imdb = mean({{ .ranking }}, na.rm = TRUE),
+              .by = anio) |> 
+    arrange(anio)
+}
+
+df_peliculas_rank <- df_peliculas |> 
+  f_df_peliculas_rank(rating_imdb)
+  
+df_peliculas_rank |> 
+  head()
+```
+
+```{r}
+f_gg_peliculas_rank <- function(.df){
+  
+  .df |> 
+    ggplot(aes(x = anio, y = rating_imdb,
+               fill = n_peliculas,
+               size = n_peliculas)) +
+    geom_col(width = 60, fill = 'gray50', 
+             show.legend = F) +
+    geom_point(colour = 'white') + 
+    geom_point(shape = 21,
+               alpha = .7) + 
+    scale_x_date('Años', 
+                 expand = expansion(add = c(400, 400))) +
+    scale_y_continuous(limits = c(0, 10),
+                       expand = expansion(add = c(.5, 0)),
+                       labels = round) +
+    scale_fill_distiller('Número\nde películas', 
+                         palette = 'YlOrRd', 
+                         direction = 1,
+                         limits = c(1, 20),
+                         breaks = scales::pretty_breaks(4)) +
+    scale_size_continuous('Número\nde películas', 
+                          range = c(1, 10),
+                          limits = c(1, 40),
+                          breaks = scales::pretty_breaks(5)) +
+    guides(fill = guide_legend(),
+           size = guide_legend()) +
+    labs(title = 'Rating de chilenas por año en IMDb',
+         subtitle = 'Películas desde 1990 en adelante',
+         caption = 'Fuente: IMDb.com. Web Scraping y acceso a datos desde la web',
+         y = 'Promedio rating IMDb') +
+    theme_minimal()
+}
+
+df_peliculas_rank |> 
+  f_gg_peliculas_rank()
+```
+
+#### Género
+
+6) ¿Cuál es el *género* que tienen el *mejor puntaje promedio* considerando películas estrenadas desde 1990 a la fecha?
+
+Modificar base para que la unidad de análisis sea `genero`.
+
+```{r}
+f_df_genero <- function(.df,
+                        .rating){
+  .df |>   
+    summarise(n_peliculas = n(),
+              n_peliculas_con_rating = sum(!is.na({{ .rating }})),
+              rating_imdb = mean({{ .rating }}, na.rm = TRUE),
+              .by = genero) |> 
+    arrange(-rating_imdb)
+}
+
+df_genero <- df_peliculas |> 
+  filter(anio >= as.Date("1990-01-01")) |> 
+  select(index, rating_imdb, genero) |> 
+  unnest_longer(col = genero)
+
+df_genero <- df_genero |> 
+  f_df_genero(rating_imdb)
+
+head(df_genero)
+```
+
+El género con mejor puntaje promedio desde 1990 es **Biography**.
+
+```{r}
+df_genero |> 
+  arrange(-n_peliculas) |> 
+  head()
+```
+
+## Captura de datos 465 películas
+
+La información de películas adicionales se carga llamando a una API de imbd. 
+Para ello, al momento de hacer una búsqueda, se solicita información de la siguiente url:
+
+```https://caching.graphql.imdb.com/?operationName=AdvancedTitleSearch&variables=XXXXXX```
+
+Luego de analizar la forma en que se piden los datos al servidor podemos construir el request correspondiente.
+
+### query
+
+Lista en R con las variables que recibe el servidor. Esta lista contiene nuestros parámetros de interés.
+
+```{r}
+l_query_variable <- list(
+  "filmingLocationConstraint" = list(allLocations = list("chile")),
+  "first" = 50, # ojo con esto. Podrá ser manipulado.
+  "locale" = "en-US",
+  "originCountryConstraint" = list(allCountries = list("CL")),
+  "sortBy" = "POPULARITY",
+  "sortOrder" = "ASC",
+  "titleTypeConstraint" = list(
+    anyTitleTypeIds = list("movie"),
+    excludeTitleTypeIds = list("")
+  )
+)
+```
+
+Luego será traducida a un json al momento de generar el request.
+
+### request
+
+A partir de la revisión del inspector, podemos construir el request necesario. La función tiene tres parámetros de utilidad:
+
+- `.l_query_var`: list con parámetros para el query del request. 
+- `.first`: número de películas a buscar
+- `.after`: parámetro para busqueda paginada. Señala hasta donde quedó la entrega de datos en una búsqueda anterior.
+
+```{r}
+f_req_imbd <- function(.l_query_var,
+                       .first = 50,
+                       .after = NULL){
+  
+  .l_query_var$first <- .first
+  .l_query_var$after <- .after
+  
+  json_query_variable <- .l_query_var |> 
+    jsonlite::toJSON(auto_unbox = TRUE)
+  
+  httr2::request(base_url = 'https://caching.graphql.imdb.com/') |> 
+    req_headers('Accept' = 'application/json',
+                'Content-Type' = 'application/json') |> 
+    req_url_query(operationName = 'AdvancedTitleSearch',
+                  variables = json_query_variable,
+                  # Dato necesario
+                  extensions = '{"persistedQuery":{"sha256Hash":"42714660b115c035a3c14572bfd2765c622e2659f7b346e2ee7a1f24296f08e7","version":1}}'
+    )
+}
+```
+
+Al poder controlar el número de películas solicitadas, capturaré con una sola llamada las 465 películas de interés.
+
+```{r}
+req_movies <- f_req_imbd(l_query_variable,
+                         .first = 465)
+
+# Formato de request
+req_movies |> 
+  req_dry_run()
+```
+
+### response
+
+Lectura de datos
+
+```{r}
+resp_movies <- req_perform(req_movies)
+
+resp_movies
+```
+
+Recibimos un json como respuesta
+
+```{r}
+j_movies <- resp_movies |> 
+  resp_body_json()
+
+j_movies |> str(2)
+```
+
+```{r}
+j_movies$data |> str(2)
+```
+
+Datos de películas en `edges`.
+
+```{r}
+j_movies$data$advancedTitleSearch$edges[[1]] |> str(3)
+```
+
+### data.frame
+
+Obtención de los datos de interés interés a partir del json capturado
+
+```{r}
+f_build_df_movie <- function(.l_json){
+  
+  # número de películas en la busqueda
+  n_movie <- .l_json[['data']][['advancedTitleSearch']][['total']]
+  
+  # siguiente página de la búsqueda luego de la respuesta recibida
+  next_page <- .l_json[['data']][['advancedTitleSearch']][['pageInfo']][['endCursor']] 
+  
+  # datos de películas
+  df_movie <- .l_json[['data']][['advancedTitleSearch']][['edges']] |> 
+    bind_rows() |> 
+    unnest_wider(node) |> 
+    unnest_wider(col = c(titleText, 
+                         originalTitleText,
+                         ratingsSummary, releaseYear, metacritic),
+                 names_sep = '_')
+
+  list(n_movie = n_movie, 
+       next_page = next_page,
+       df = df_movie)
+}
+
+l_movies <- f_build_df_movie(j_movies)
+
+l_movies |> str(2)
+```
+
+data.frame de películas es el siguiente
+
+```{r}
+df_movies <- l_movies$df
+```
+
+Ajustes en variable de año.
+
+```{r}
+df_movies <- df_movies |> 
+  mutate(anio = as.Date(paste0(releaseYear_year, '-01-01', '%Y-%M-$d')))
+```
+
+### Análisis
+
+#### Número de películas
+
+3) Graficar la evolución del el *número de películas* (eje y) estrenadas por *año* (eje x).
+
+```{r}
+df_movies_anio_all <- df_movies |> 
+  count(anio, name = 'n_peliculas')
+
+df_movies_anio_all |> 
+  f_gg_peliculas_anio()
+```
+
+#### Rating 
+
+5) Graficar la evolución del el *rating IMDb* promedio (eje y) *estrenadas desde 1990* a la fecha (eje x).
+
+```{r}
+df_movies_rank <- df_movies |> 
+  f_df_peliculas_rank(ratingsSummary_aggregateRating)
+  
+df_movies_rank |> 
+  head()
+```
+
+```{r}
+df_movies_rank |> 
+  f_gg_peliculas_rank()
+```
+
+#### Género
+
+6) ¿Cuál es el *género* que tienen el *mejor puntaje promedio* considerando películas estrenadas desde 1990 a la fecha?
+
+Modificar base para que la unidad de análisis sea `genero`.
+
+```{r}
+f_df_genero <- function(.df,
+                        .rating){
+  .df |>   
+    summarise(n_peliculas = n(),
+              n_peliculas_con_rating = sum(!is.na({{ .rating }})),
+              rating_imdb = mean({{ .rating }}, na.rm = TRUE),
+              .by = genero) |> 
+    arrange(-rating_imdb)
+}
+
+df_movies_genero <- df_movies |> 
+  filter(anio >= as.Date("1990-01-01")) 
+
+df_movies_genero <- df_movies_genero |> 
+  select(anio, 
+         titulo = originalTitleText_text, 
+         rating_imdb = ratingsSummary_aggregateRating,
+         genero = titleGenres) |> 
+  mutate(genero = map(genero, \(x) pluck(x, 'genres', 1))) |> 
+  unnest_longer(genero)
+  
+df_movies_genero$genero <- df_movies_genero$genero |> unlist() |> as.character()
+
+df_movies_genero_all <- df_movies_genero |> 
+  f_df_genero(rating_imdb)
+
+head(df_movies_genero_all)
+```
+
+El género con mejor puntaje promedio desde 1990 es **Music**.
+
+```{r}
+df_movies_genero_all |> 
+  arrange(-n_peliculas) |> 
+  head()
+```
