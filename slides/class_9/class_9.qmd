@@ -1,0 +1,601 @@
+---
+title: |
+  | Clase 9: Usos de APIs
+subtitle: "Web scraping y acceso a datos desde la web"
+author: "<br>Cristián Ayala<br> Director DESUC"
+lang: 'es'
+date: '2024-06-27'
+date-format: 'long'
+copyright: "[github.com/caayala](https://github.com/caayala)"
+format: 
+  revealjs:
+    footer: "DESUC Web Scraping, 2024"
+    slide-number: c/t
+    transition: none
+    theme: [moon]
+execute: 
+  cache: true
+  echo: true
+fig-align: center
+# editor: 
+#   mode: source
+---
+
+```{r}
+#| echo = FALSE
+suppressPackageStartupMessages(library(tidyverse))
+library(rvest)
+library(httr2)
+library(knitr)
+
+opts_chunk$set(cache.path = "class_9_files/class_9_cache/html/")
+```
+
+
+## Motivación
+
+- Utilizar *puertas* provistas por servicios web para acceder a su información.
+
+  - Wikipedia, Spotify, Mastodon.
+
+- Revisar paquetes ya desarrollados para acceder a servicios populares.
+
+
+
+## Paquetes para la clase de hoy
+
+Grupo de paquetes interrelacionados:
+
+- [WikipediR](https://github.com/Ironholds/WikipediR/): Empaqueta la API de MediaWiki para bajar datos de Wikipedia.
+
+- [spotifyr](https://www.rcharlie.com/spotifyr/): Empaqueta la API de Spotify para bajar datos.
+
+- [rtoot](https://schochastics.github.io/rtoot/): Permite interactuar con la API de Mastodon.
+
+
+
+## Wikipedia
+
+El software sobre el que está montada Wikipedia ---[MediaWiki](https://en.wikipedia.org/wiki/MediaWiki#Application_programming_interface)--- cuenta con una API 
+para acceder al contenido almacenado en sus bases de datos.
+
+- MediaWiki API: [Página principal](https://www.mediawiki.org/wiki/API:Main_page)
+
+Veamos la documentación y como crear llamados en la [sandbox](https://www.mediawiki.org/wiki/Special:ApiSandbox) disponible
+
+
+
+## Wikipedia: API
+
+Revisemos la [API de Wikipedia](https://www.mediawiki.org/wiki/API:Main_page). 
+
+- Revisión de acciones disponibles.
+  - [`Search`](https://www.mediawiki.org/wiki/API:Search): Buscar páginas.
+
+  - [`Parse`](https://www.mediawiki.org/wiki/API:Parsing_wikitext): Obtener contenido de una página.
+  
+  - [`Query`](https://www.mediawiki.org/wiki/API:Query): Obtener información de páginas.
+
+Captura de página sobre *web scraping* en español.
+
+
+
+## Wikipedia: API buscar API: Search 1 {.smaller}
+
+Construcción de GET para la acción [`Search`](https://www.mediawiki.org/wiki/API:Search).
+
+```{r}
+req_wiki_api <- request('https://es.wikipedia.org') |> 
+  req_url_path('w/api.php') |> 
+  req_headers('Accept-Encoding' = 'gzip')
+
+req_wiki_search <- req_wiki_api |>
+  req_url_query(!!!list(action = 'query',
+                        list = 'search',
+                        srsearch = 'web scraping',
+                        srlimit = 5,
+                        format = 'json'))
+
+resp_wiki_search <- req_perform(req_wiki_search)
+
+# Leo el json que está dentro de la respuesta a la petición.
+df <- resp_wiki_search |> 
+  resp_body_json(simplifyVector = T)
+
+df |> str()
+```
+
+
+
+## Wikipedia: API buscar API: Search 2 {.smaller}
+
+Transformación de los resultados a una `tibble`. 
+La información que interesa está en `query` ↘️ `search`.
+
+```{r}
+df$query$search |> as_tibble()
+```
+
+
+
+## Wikipedia: API contenido API: Parse 1
+
+Obtención del contenido de página. GET para la acción [`Parse`](https://www.mediawiki.org/wiki/API:Parsing_wikitext).
+
+```{r}
+req_wiki_parse <- req_wiki_api |>
+  req_url_query(!!!list(action = 'parse',
+                        page = 'Web scraping', # contenido de título de página
+                        prop = 'text', # html de retorno
+                        format = 'json'))
+
+resp_wiki_parse <- req_perform(req_wiki_parse)
+
+df_wiki_parse <- resp_wiki_parse |> 
+  resp_body_json(simplifyVector = T)
+
+df_wiki_parse |> str(3)
+```
+
+
+
+## Wikipedia: API contenido API: Parse 2
+
+El texto de contenido en `parse` ↘️ `text` ↘️ `*`.
+
+```{r}
+df_wiki_parse$parse$text$`*` |> 
+  read_html() |> html_text() |> 
+  str_trunc(width = 1e3) |> cat()
+```
+
+
+
+## Wikipedia: API información API: Query 1 {.smaller}
+
+Información de varias páginas con [`Query`](https://www.mediawiki.org/wiki/API:Query).
+
+```{r}
+req_wiki_query <- req_wiki_api |>
+  req_url_query(!!!list(action = 'query',
+                         titles = 'Web scraping|Python', # Varios títulos a la ves.
+                         prop = 'info|categories|iwlinks', # Información a obtener.
+                         format = 'json'))
+
+resp_wiki_query <- req_perform(req_wiki_query)
+
+df_wiki_query <- resp_wiki_query |> 
+  resp_body_json(simplifyVector = T)
+
+df_wiki_query |> str(3)
+```
+
+
+
+## Wikipedia: API información API: Query 2
+
+```{r}
+df_wiki_query$query$pages |> 
+  enframe() |> 
+  unnest_wider(value)
+```
+
+
+
+## Wikipedia: usando WikipediR 1 {.smaller}
+
+[WikipediR](https://github.com/Ironholds/WikipediR/): lo mismo, pero más fácil.
+
+:::: {.columns}
+
+::: {.column width="50%"}
+- `page_info`: información sobre una página específica.
+
+- `page_content`: contenido de una página específica.
+
+- `page_links`: links disponibles en una página específica.
+
+```{r}
+library(WikipediR)
+
+info_wiki <- page_info(
+  language = 'es', 
+  project = 'wikipedia', 
+  page = 'Web_scraping|Python') 
+```
+:::
+
+::: {.column width="50%"}
+```{r}
+str(info_wiki, 3)
+```
+:::
+
+::::
+
+
+
+## Wikipedia: usando WikipediR 2 {.smaller}
+
+Resultado de la búsqueda.
+
+```{r}
+info_wiki$query$pages |> 
+  enframe() |> 
+  unnest_wider(value)
+```
+
+
+
+## Wikipedia: usando WikipediR 3 {.smaller}
+
+Captura de página sobre *web scraping* en español.
+
+```{r}
+cont_wiki <-  page_content(language = 'es', 
+                           project = 'wikipedia', 
+                           page_name = 'Web_scraping')
+
+str(cont_wiki) # Una lista parse con 4 elementos dentro
+```
+
+
+
+## Wikipedia: usando WikipediR 4 {.smaller}
+
+Texto sobre _web scraping_.
+
+```{r}
+cont_wiki$parse$text$`*` |> # Texto del requerimiento
+  read_html() |> html_text() |> 
+  str_trunc(width = 1e3) |> cat()
+```
+
+
+
+## Spotify
+
+:::: {.columns}
+
+::: {.column width="50%"}
+Uno de los mayores proveedores de servicio de música del mundo. 
+Tiene disponible una API para la integración de su servicio con otras aplicaciones. Podemos usarla para obtener información.
+
+- Spotify API: [quick start](https://developer.spotify.com/documentation/web-api/quick-start/)
+
+- Requiere tener cuenta en Spotify y [crear un token](https://developer.spotify.com/dashboard/).
+:::
+
+::: {.column width="50%"}
+![Spotify dashboard](./class_9_files/spotify_dashboard.jpeg)
+:::
+
+::::
+
+
+
+## Spotify: API 1
+
+Revisemos la [API de Spotify](https://developer.spotify.com/documentation/web-api/). 
+Acciones de interés.
+
+- [`Search`](https://developer.spotify.com/documentation/web-api/reference/#/operations/search): 
+Buscar.
+  
+- [`get-playlist`](https://developer.spotify.com/documentation/web-api/reference/#/operations/get-playlist): 
+Datos sobre una lista.
+  
+- [`get-several-audio-features`](https://developer.spotify.com/documentation/web-api/reference/#/operations/get-several-audio-features): 
+Información psico--acústica de canciones.
+
+
+
+## Spotify: API 2 {.smaller}
+
+Búsqueda de género metal usando la API directamente. 
+
+Pedí el [token][sp_token] de acceso usando `spotifyr`.
+
+```{r}
+req_spotify_api <- request('https://api.spotify.com') |> 
+  req_url_path('v1') |> 
+  req_headers(Authorization = str_glue("Bearer {spotifyr::get_spotify_access_token()}"),
+              Accept = 'application/json"',
+              'Accept-Encoding' = 'gzip')
+
+req_spotify_met <- req_spotify_api |> 
+  req_url_path_append('search') |> 
+  req_url_query(q = 'genre:metal', 
+                market = 'CL', 
+                type = 'artist', 
+                limit = 8)
+
+resp_spotify_met <- req_spotify_met |> req_perform()
+
+df_spotify_met <- resp_spotify_met |> 
+  resp_body_json(simplifyVector = T)
+
+df_spotify_met$artists$items |> 
+  as_tibble() |> unpack(followers, names_repair = 'minimal') |>
+  select(id, name, popularity, total)
+```
+
+[sp_token]: https://developer.spotify.com/documentation/web-api/tutorials/getting-started#request-an-access-token
+
+```{r}
+#| eval: false
+#| echo: false
+#| 
+# Para pedir un token directamente por la API.
+# Debemos agregar información en el body del request.
+req_spotify_token <- request('https://accounts.spotify.com') |> 
+  req_url_path('api/token') |> 
+  req_auth_basic(username = Sys.getenv('SPOTIFY_CLIENT_ID'),
+                 password = Sys.getenv('SPOTIFY_CLIENT_SECRET')) |> 
+  req_body_form(grant_type = "client_credentials")
+
+resp_spotify_token <- req_spotify_token |> req_perform()
+
+resp_spotify_token |> resp_body_json()
+```
+
+
+## Spotify: spotifyr 1 {.smaller}
+
+Envuelve los llamados a la API de Spotify en funciones de R.
+Puede verse su [referencia](https://www.rcharlie.com/spotifyr/reference/index.html)
+
+Búsqueda análoga a la anterior:
+
+```{r}
+library(spotifyr)
+
+df_met <- get_genre_artists('metal', limit = 8)
+df_met |> 
+  select(id, name, popularity, followers.total)
+```
+
+
+
+## Spotify: spotifyr 2 {.smaller}
+
+Cambiamos los criterios de búsqueda para encontrar podcasts.
+
+```{r}
+df_pod <- search_spotify(q = 'podcast', type = 'show', market = 'CL', limit = 10)
+
+df_pod |> 
+  select(id, name, total_episodes, description)
+```
+
+
+
+## Spotify: spotifyr listas {.smaller}
+
+Exploremos las características de canciones gracias a la lista 
+[top 50 canciones en Chile](https://open.spotify.com/playlist/37i9dQZEVXbL0GavIqMTeb). 
+
+```{r}
+df_top <- get_playlist('37i9dQZEVXbL0GavIqMTeb') # ID de la lista.
+df_top_track <- df_top$tracks$items |> as_tibble()
+
+suppressMessages(
+  # Seleccionar y limpiar solo alguna de las variables disponibles
+  df_top_track_sel <- df_top_track |> 
+    mutate(track.id, track.name, track.popularity, track.album.release_date, 
+           name = map(track.album.artists, 'name'),
+           .keep = 'none') |> 
+    unnest_wider(col = name, names_sep = '_')
+)
+
+df_top_track_sel |> head()
+```
+
+
+
+## Spotify: spotifyr canciones 1 {.smaller}
+
+Con el `id` de las canciones, podemos obtener características musicales de las canciones.
+
+```{r}
+df_track_af <- get_track_audio_features(df_top_track_sel$track.id)
+
+head(df_track_af)
+```
+
+
+
+## Spotify: spotifyr canciones 2 {.smaller}
+
+Gráfico con la posición relativa de las canciones según 5 características.
+
+:::: {.columns}
+
+::: {.column width="50%"}
+```{r}
+df_top_track_sel_gg <- bind_cols(df_top_track_sel, 
+                                 df_track_af) |> 
+  arrange(track.popularity) |> 
+  mutate(pos = row_number())
+
+gg <- df_top_track_sel_gg |> 
+  pivot_longer(cols = c(danceability, 
+                        energy, 
+                        speechiness, 
+                        acousticness, 
+                        liveness),
+               names_to = 'variable', 
+               values_to = 'valor') |> 
+  ggplot(aes(x = variable, 
+             y = valor, 
+             colour = track.popularity)) +
+  geom_violin(colour = 'gray80') + 
+  geom_point(aes(size = pos),
+             alpha = 0.3,
+             show.legend = FALSE) + 
+  scale_colour_steps(low = '#266591', high = '#f57500',
+                      ) +
+  scale_radius() +
+  theme_minimal() +
+  labs(title = 'Características de las 50 canciones en Chile',
+       subtitle = 'Lista Top 50 — Chile, Spotify', 
+       x = NULL)
+```
+:::
+
+::: {.column width="50%"}
+```{r}
+#| fig-height: 7
+gg
+```
+:::
+
+::::
+
+
+
+## Mastodon: API
+
+La API de Mastodon se puede consultar [acá](https://docs.joinmastodon.org/api/). 
+
+- Es de uso abierto y gratuito.
+
+- Packete: [`rtoot`](https://schochastics.github.io/rtoot/)
+
+
+
+## Mastodon: rtoot 1 {.smaller}
+
+Instalar versión en desarrollo:
+
+```r
+install.packages("rtoot")
+```
+
+```{r}
+library(rtoot)
+
+custom_instance <- 'lile.cl'
+
+lile_instance <- get_instance_general(instance = custom_instance, anonymous = TRUE)
+
+lile_instance |> str(2)
+```
+
+
+
+## Mastodon: rtoot 2 {.smaller}
+
+Listado de instancias de Mastodon
+
+```{r}
+lile_peers <- get_instance_peers(instance = custom_instance, token = NULL, anonymous = TRUE)
+
+head(lile_peers)
+```
+
+Instancias con "chile" en su nombre:
+
+```{r}
+lile_peers[grepl('chile', lile_peers)]
+```
+
+Buscar la instancia _oficial_:
+
+```{r}
+lile_peers[grepl('mastodon.social', lile_peers)]
+```
+
+
+
+## Mastodon: rtoot 3 {.smaller}
+
+```{r}
+get_instance_trends(
+  instance = custom_instance,
+  token = NULL,
+  limit = 10,
+  anonymous = TRUE
+)
+```
+
+
+
+## Mastodon: rtoot 4, search 
+
+Listado de usuarios que tengan en su nombre "chile".
+
+```{r}
+l_toot_chile <- rtoot(
+  endpoint = '/api/v2/search',
+  params = list(q = 'chile',
+                type = 'accounts',
+                limit = 40), # puede ser hashtags, statuses
+  token = Sys.getenv('MSTDN_SOCIAL_KEY'),
+  instance = 'mstdn.social',
+  anonymous = FALSE)
+
+df_toot_chile <- l_toot_chile$accounts |> 
+  map(\(x) unlist(x) |> t() |> data.frame()) |> 
+  reduce(bind_rows)
+
+df_toot_chile$username
+```
+
+
+## Mastodon: rtoot 5, stream {.smaller}
+
+```{r}
+if(interactive()) {
+  stream_timeline_public(
+    timeout = 30,
+    local = FALSE,
+    file_name = 'slides/class_9/class_9_files/stream_lile_public.json',
+    append = TRUE,
+    instance = custom_instance,
+    token = NULL,
+    anonymous = FALSE,
+    verbose = TRUE
+  )
+  
+  parse_stream("slides/class_9/class_9_files/stream_lile_public.json")
+}
+```
+
+
+
+
+## En el próximo taller… 
+
+- chromote.
+
+- repaso.
+
+
+
+## {.smaller}
+
+Presentación y código en GitHub:\
+<https://github.com/caayala/web_scraping_soc40XX_2024>\
+<https://caayala.github.io/web_scraping_soc40XX_2024>
+
+<br>
+
+::: {style="font-size:3em; text-align:center; padding: 50px;"}
+¡Gracias!
+:::
+
+<br> 
+Cristián Ayala\
+<https://blog.desuc.cl/>\
+<http://github.com/caayala>
+
+
+```{r}
+#| include: false
+
+# Extraer código R
+knitr::purl('class_9.qmd',
+            output = 'class_9.R',
+            quiet = TRUE)
+```
