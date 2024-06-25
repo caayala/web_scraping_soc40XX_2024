@@ -1,0 +1,67 @@
+---
+title: "Control 3"
+subtitle: "Web Scraping y acceso a datos desde la web"
+author: "Cristián Ayala"
+date: "2023-07-02"
+lang: "es"
+format:
+  html:
+    page-layout: article
+    self-contained: false
+---
+
+```{r, echo=FALSE}
+```
+
+Ponderación
+
+:   20% de la nota final del curso
+
+Formato
+
+:   Desarrollar esta tarea con [Quarto](https://quarto.org/docs/get-started/hello/rstudio.html) o [Rmarkdown](https://rmarkdown.rstudio.com/lesson-1.html) generando un `.pdf`, agregando comentarios cuando sea necesario.
+
+### Objetivo:
+
+Interesa indagar sobre parecidos y diferencias en el gusto musical en Chile, Colombia, Perú y Argentina además de ver su relación con las canciones más escuchadas a nivel global. 
+Para ello, analizaremos las listas semanales de canciones de Spotify, usando el paquete [spotifyr](https://www.rcharlie.com/spotifyr/).
+
+Las listas de canciones más escuchadas desde donde obtendremos la información, son las siguientes:
+
+-   [Top Global](https://open.spotify.com/playlist/37i9dQZEVXbNG2KDcFcKOF)
+-   [Top Argentina](https://open.spotify.com/playlist/37i9dQZEVXbKPTKrnFPD0G)
+-   [Top Chile](https://open.spotify.com/playlist/37i9dQZEVXbLJ0paT1JkgZ)
+-   [Top Colombia](https://open.spotify.com/playlist/37i9dQZEVXbOa2lmxNORXQ)
+-   [Top Perú](https://open.spotify.com/playlist/37i9dQZEVXbMGcjiWgg253)
+
+Para este análisis será necesario tener o crear una cuenta en Spotify para obtener [credenciales de desarrollador](https://developer.spotify.com/dashboard) y acceder a su API.
+
+## Tareas:
+
+1)  Obtener y mostrar el listado de las 50 canciones en cada lista.
+
+2)  Mostrar una tabla en que se muestren las las 10 canciones más repetidas.
+
+    | Canción   | Cantidad de apariciones en las 5 listas |
+    |:----------|-----------------------------------------|
+    | Cancion 1 | n                                       |
+
+    La cantidad de apariciones debiese tener un valor máximo de 5.
+
+3)  Mostrar una tabla en que se muestren los 10 artistas más mencionados en cada lista.
+
+    | Artista   | Cantidad de apariciones en las 5 listas |
+    |:----------|-----------------------------------------|
+    | Artista 1 | n                                       |
+
+    La cantidad de apariciones puede ser mayor a 5 porque puede aparecer varias veces.
+
+4)  Revisando lo visto en [clases](../slides/class_9/class_9.html), 
+comparar las canciones de Chile, Argentina, Perú y la lista global respecto de sus [características acústicas](https://developer.spotify.com/documentation/web-api/reference/#/operations/get-several-audio-features): 
+*danceability*, *energy*, *instrumentalness* y *valence*[^1].
+
+    Obtener el promedio de esos indicadores en las 50 canciones más populares para cada lista y compárelos en un gráfico. 
+    
+    ¿Hay diferencias en el gusto musical entre los 4 países y el mundo?
+
+[^1]: Estos conceptos son definidos por Spotify.
