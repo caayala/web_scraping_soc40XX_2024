@@ -1,0 +1,587 @@
+---
+title: |
+  | Clase 10: Taller
+  | chromote y repaso 
+subtitle: "Web scraping y acceso a datos desde la web"
+author: "<br>Cristián Ayala<br> Director DESUC"
+lang: 'es'
+date: '2024-07-02'
+date-format: 'long'
+copyright: "[github.com/caayala](https://github.com/caayala)"
+format: 
+  revealjs:
+    footer: "DESUC Web Scraping, 2024"
+    slide-number: c/t
+    transition: none
+    theme: [moon]
+fig-align: center
+execute: 
+  cache: true
+# editor: 
+#   mode: source
+---
+
+
+```{r}
+#| echo: false
+#| warning: false
+suppressPackageStartupMessages(library(tidyverse))
+library(rvest)
+library(httr2)
+
+opts_chunk$set(cache.path = "class_10_files/class_10_cache/html/")
+```
+
+
+## Motivación
+
+- Obtener datos generados dinámicamente por JavaScript emulando un navegador con `chromote` mediante `rvest` o `selenider`,
+
+- Ejemplo con recuento y resumen de lo visto.
+
+
+
+## Paquetes para la clase de hoy
+
+Grupo de paquetes interrelacionados:
+
+- [chromote](https://rstudio.github.io/chromote/): 
+Implementación de [Chrome DevTools Protocol](https://chromedevtools.github.io/devtools-protocol/) 
+en R para manejar un navegador programáticamente.
+
+- [rvest::read_html_live()](https://rvest.tidyverse.org/reference/read_html_live.html): 
+Implementación y ayuda directa para utilizar `chromote` en `rvest`.
+
+- [selenider](https://ashbythorpe.github.io/selenider/). 
+Empaqueta chromote o selenium con una interfase más sencilla. 
+
+  Necesario tener instalado [Google Chrome](https://www.google.com/intl/es_es/chrome/).
+
+
+
+## Motivación 1
+
+:::: {.columns}
+
+::: {.column width="50%"}
+- Enfrentamos una página que procesa y genera contenido mediante JavaScript o acciones del navegador.
+
+- La captura del html de ella no entregará información requerida. 
+
+- Podemos entonces controlar un navegador sin cabeza (*[headless browser](https://en.wikipedia.org/wiki/Headless_browser)*) 
+para generar acciones y obtener los datos demandados.
+:::
+
+::: {.column width="50%"}
+- Ejemplo [IMDB](https://www.imdb.com/search/title/?title_type=feature&locations=chile&countries=CL)
+
+![Vista principal MIME](class_10_files/IMDB_search.png)
+:::
+
+::::
+
+
+
+## Motivación 2
+
+:::: {.columns}
+
+::: {.column width="50%"}
+- La página contiene solo javascript.
+
+- Datos de cada escuela se despliegan luego de buscar en listas.
+
+- Queremos obtener la **información de las escuelas**.
+:::
+
+::: {.column width="50%"}
+- Ejemplo [Admisión escolar 2023](https://admision.mineduc.cl/vitrina-vue/)
+
+![Vista principal MIME](class_10_files/vue_vitrina-vue.png)
+:::
+
+::::
+
+
+
+## Motivación 3
+
+:::: {.columns}
+
+::: {.column width="50%"}
+- Al capturar su contenido sólo con `rvest` obtenemos lo siguiente:
+
+    No funciona directamente sin un navegador que ejecute JavaScript.
+:::
+
+::: {.column width="50%"}
+```{r}
+url <- 'https://admision.mineduc.cl/vitrina-vue/'
+
+read_html(url) |> 
+  html_element('body')
+```
+:::
+
+::::
+
+## IMDB página 1 {.smaller}
+
+URL del control 2. 
+
+```{r}
+url_imdb <- 'https://www.imdb.com/search/title/?title_type=feature&locations=chile&countries=CL'
+imbd_static <- read_html(url_imdb)
+imbd_live   <- read_html_live(url_imdb)
+```
+
+El método directo entregaba 25.
+
+```{r}
+imbd_static |> html_elements('.cVXqoq') |> length()
+```
+
+Usando un navegador, se leen 50 películas. 
+
+```{r}
+imbd_live |> html_elements('.cVXqoq') |> length()
+```
+
+```{r}
+n_peliculas <- imbd_live |> html_element('.gJQFCa') |> html_text()
+(n_peliculas <- n_peliculas |> str_extract('.*?(\\d*)$', group = 1) |> as.integer())
+```
+
+
+## IMDB página 2
+
+Se requeriría la siguiente cantidad de clics: 
+
+```{r}
+(n_clics <- ceiling(n_peliculas / 50) - 1)
+```
+
+Se puede ver el navegador en funcionamiento. 
+
+```{r}
+imbd_live$view()
+```
+
+Clic en el botón "50 more".
+
+```{r}
+imbd_live$click('.ipc-see-more__text')
+```
+
+## IMDB página 3
+
+Realizar los siguientes clics en la página:
+
+```{r}
+f_clic <- function(...){
+  imbd_live$click('.ipc-see-more__text')
+  Sys.sleep(2) # Pausa de 2 segundos entre clics.
+}
+
+walk(seq_len(n_clics - 2), f_clic)
+```
+Se tienen todas las películas:
+
+```{r}
+imbd_live |> html_elements('.cVXqoq') |> length()
+```
+
+
+
+## Admisión MINEDUC 1
+
+:::: {.columns}
+
+::: {.column width="50%"}
+- Selección de escuelas mediante filtros.
+- Distintas vistas de establecimientos
+:::
+
+::: {.column width="50%"}
+![Imagenes cargan al aplicar filtros](class_10_files/vue_explorar_1.png)
+:::
+
+::::
+
+
+
+## Admisión MINEDUC 2 {.smaller}
+
+:::: {.columns}
+
+::: {.column width="50%"}
+- La información de una comuna se accede mediante:
+
+- GET: información de todos los establecimientos la comuna.
+:::
+
+::: {.column width="50%"}
+![POST de búsqueda de colegio](class_10_files/vue_establecimientos_comuna.png)
+:::
+
+::::
+
+
+
+## Admisión MINEDUC 3
+
+:::: {.columns}
+
+::: {.column width="50%"}
+- La información de la comuna entrega un `json` que podríamos manipular.
+:::
+
+::: {.column width="50%"}
+![POST de búsqueda de colegio body](class_10_files/vue_establecimientos_comuna_json.png)
+:::
+
+::::
+
+
+## Admisión MINEDUC 4
+
+:::: {.columns}
+
+::: {.column width="50%"}
+- En la vista _detalle_ podemos ver información parcial de las escuelas.
+:::
+
+::: {.column width="50%"}
+![Detalle de comuna](class_10_files/vue_establecimientos_comuna_detalle.png)
+:::
+
+::::
+
+
+## Admisión MINEDUC: Acceso a sitio web
+
+Navegar hasta sitio de interés.
+
+:::: {.columns}
+
+::: {.column width="50%"}
+```{r}
+# Ir a sitio web de interés
+try(vue_live <- read_html_live("https://admision.mineduc.cl/vitrina-vue/"))
+Sys.sleep(5) # Tiempo para que la página cargue.
+```
+
+```{r}
+# Se puede ver lo que hace esta "ventana":
+if(interactive()){
+  vue_live$view()
+}
+```
+:::
+
+::: {.column width="50%"}
+![DevTools](class_10_files/vue_chromote_DevTools_1.jpg)
+:::
+
+::::
+
+
+
+## Admisión MINEDUC: Captura de atributos  {.smaller}
+
+Obtenemos atributos de interés desde el navegador.
+
+- Dentro de los nodos del documento, se buscarán elementos
+`<select>` cuyo atributo `id` sea `select-region`.
+
+```{r}
+try(select_reg  <- vue_live |> html_elements("select[id=select-region]"))
+try(select_com  <- vue_live |> html_elements("select[id=select-comuna]"))
+try(opt_reg_ids <- vue_live |> html_elements("select[id=select-region] option"))
+```
+```{r}
+try(opt_reg_ids |> html_text())
+```
+
+- Posición de los nodos de interés.
+
+
+
+## Admisión MINEDUC: Regiones y valor
+
+```{r}
+try(
+  df_region <- tibble(region = opt_reg_ids |> html_text(),
+                      value = opt_reg_ids |> html_attr('value') |> as.integer())
+)
+
+df_region |> head()
+```
+
+
+
+## httr2: escuelas por comuna 1
+
+- Revisar bien el funcionamiento de la página 🚨
+
+- La página de SAE permite capturar colegios por región y comuna.
+
+- Se puede usar `request()` para buscar escuelas luego de analizar el tráfico.
+
+```{r}
+comuna <- 'ALTO_HOSPICIO'
+
+req_esc <- request('https://apisae.mineduc.cl/sae-api-vitrina/v1/establecimientos') |> 
+  req_url_query(comuna = comuna) |> 
+  req_headers('accept' = 'application/json',
+              'accept-encoding' = 'gzip')
+
+(resp_esc <- req_esc |> req_perform())
+```
+
+
+
+## httr2: escuelas por comuna 2  {.smaller}
+
+- Datos de búsqueda para `r comuna`. 
+
+    ¡Nos permite recabar información por comuna!
+
+```{r}
+resp_esc |> 
+  resp_body_json(simplifyVector = TRUE) |> head()
+```
+
+
+
+## httr2: escuelas por comuna 3  {.smaller}
+
+- Función para la captura de datos por comuna.
+
+```{r}
+#| echo: true
+#| 
+f_comuna_escuelas <- function(.comuna){
+  # preparación del envío
+  req_esc <- request('https://apisae.mineduc.cl/sae-api-vitrina/v1/establecimientos') |> 
+    req_url_query(comuna = .comuna) |> 
+    req_headers('accept' = 'application/json',
+                'accept-encoding' = 'gzip')
+  
+  req_esc |> req_perform() |> 
+    resp_body_json(simplifyVector = T)
+}
+```
+
+
+
+## httr2: escuelas por comuna 4 {.smaller}
+
+Puedo obtener el listado de comunas.
+
+```{r}
+js_comunas <- read_html('https://admision.mineduc.cl/vitrina-vue/static/js/app.08fc6ac089af64dc7303.js')
+
+comunas <- js_comunas |> html_text() |> 
+  str_extract_all('nombreComuna:\"(.*?)\"')
+
+comunas[[1]] |> head()
+```
+
+
+```{r}
+comunas_chr <- comunas[[1]] |> 
+  str_remove_all(r'(nombreComuna:\"|\")') |>  # R 4.0 soporta "raw strings"
+  janitor::make_clean_names(case = 'all_caps') # "_" por " " y eliminar caracteres especiales (Ñ)
+
+comunas_chr |> head()
+```
+
+
+
+## httr2: escuelas por comuna 5  {.smaller}
+
+:::: {.columns}
+
+::: {.column width="50%"}
+- Prueba con algunas comunas
+
+```{r}
+comunas_chr[1:20]
+```
+:::
+
+::: {.column width="50%"}
+- Buscar por **comuna**.
+
+```{r}
+df <- f_comuna_escuelas(comunas_chr[1])
+
+head(df)
+```
+:::
+
+::::
+
+
+
+## httr2: escuelas por comuna 6 {.smaller}
+
+Obtener información de `comunas_chr` usando map.
+
+```{r}
+l_escuelas <- map(comunas_chr[1:4], 
+                  f_comuna_escuelas)
+
+df_escuelas <- l_escuelas |> 
+  list_rbind()
+
+df_escuelas |> head()
+```
+
+
+
+## httr2: información de detalle 1 {.smaller}
+
+Para la información de detalle se puede construir una función según `rbd`.
+
+:::: {.columns}
+
+::: {.column width="50%"}
+```{r}
+f_rbd_detalle <- function(.rbd){
+  req_rbd <- request('https://apisae.mineduc.cl') |> 
+    req_url_path('sae-api-vitrina/v1/establecimientos') |> 
+    req_url_path_append(.rbd)
+  
+  req_rbd |> req_perform() |> 
+    resp_body_json(simplifyVector = TRUE)
+}
+
+df_rbd_detalle <- f_rbd_detalle(
+  df_escuelas$rbd[[1]])
+```
+:::
+
+::: {.column width="50%"}
+- Lista de respuesta
+
+```{r}
+#| echo: true
+df_rbd_detalle |> str(1)
+```
+:::
+
+::::
+
+
+
+## httr2: información de detalle 2 {.smaller}
+
+Capturar la información de los `rbd` que hemos capturado.
+
+* Veamos los tres primeros:
+
+```{r}
+#| cache = TRUE
+l_rbd_detalle <- map(df_escuelas$rbd[1:3], 
+                     f_rbd_detalle)
+
+df_rbd_detalle <- l_rbd_detalle |>
+  enframe() |> 
+  unnest_wider(value)
+
+head(df_rbd_detalle)
+```
+
+
+## selenider
+
+[selenider](https://ashbythorpe.github.io/selenider/). 
+Empaqueta chromote o selenium con una interfase más sencilla. 
+
+Más poderoso que `read_html_live()`y es con [`rvest`](https://ashbythorpe.github.io/selenider/articles/with-rvest.html).
+
+
+## selenider: navegar y capturar información  {.smaller}
+
+- Puedo navegar dentro de la ventana del navegador.
+
+```{r}
+library(selenider)
+
+# A blog de desuc
+# if(interactive()){
+  open_url("https://blog.desuc.cl")
+# }
+```
+
+```{r}
+link_entrada_1 <- s('.post-preview') |> 
+  elem_attr('href')
+
+link_entrada_1
+```
+
+
+## selenider: navegar entre páginas {.smaller}
+
+- Entro a página de la primera entrada.
+
+```{r}
+open_url(paste0(current_url(), link_entrada_1))
+
+s('p:nth-child(4)')
+```
+
+- Retrocedo a página principal.
+
+```{r}
+back()
+
+ss('.post-preview h2') |> 
+  lapply(elem_text) |> 
+  head()
+```
+
+
+## Referencias adicionales:
+
+- [RSelenium](https://docs.ropensci.org/RSelenium/index.html). 
+Otro paquete para manejo de un navegador sin cabeza. 
+
+
+
+## Próxima clase
+
+- Revisión de trabajos finales.
+
+
+
+## {.smaller}
+
+Presentación y código en GitHub:\
+<https://github.com/caayala/web_scraping_soc40XX_2024>\
+<https://caayala.github.io/web_scraping_soc40XX_2024>
+
+<br>
+
+::: {style="font-size:3em; text-align:center; padding: 50px;"}
+¡Gracias!
+:::
+
+<br> 
+Cristián Ayala\
+<https://blog.desuc.cl/>\
+<http://github.com/caayala>
+
+
+```{r}
+#| echo = FALSE,
+#| include = FALSE
+
+# Extraer código R
+knitr::purl('class_10.qmd',
+            output = 'class_10.R',
+            quiet = TRUE)
+```
