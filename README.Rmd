@@ -50,10 +50,10 @@ calendario |>
 
 - Control 1 (20%): Captura de página web 1. 
     [Instrucciones](./homework/c_1).
-<!-- [Respuesta](./homework/c_1_answers.pdf). -->
+    [Respuesta](./homework/c_1_answers.pdf).
 - Control 2 (20%): Captura de página web 2: Captura de datos desde IMBD.
     [Instrucciones](./homework/c_2).
-<!-- [Respuesta](./homework/c_2_answers.pdf). -->
+    [Respuesta](./homework/c_2_answers.pdf).
 - Control 3 (20%): Uso de API
 <!-- Análisis de canciones en Spotify. -->
 <!-- [Instrucciones](./homework/c_3). -->

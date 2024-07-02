@@ -40,18 +40,18 @@ Tendremos clases teóricas (T) y prácticas (P).
 |       | 2024-06-20 |      | *Feriado*                                          |                                                                                              |                               |                                                                                                             |
 |     8 | 2024-06-25 | P    | Integración de R con Google Sheets                 | [`googlesheets4`](https://googlesheets4.tidyverse.org)                                       | Propuesta TF                  | [Slides](slides/class_8/class_8#1) [.qmd](slides/class_8/class_8.qmd) [.R](slides/class_8/class_8_taller.R) |
 |     9 | 2024-06-27 | T    | Uso de APIs: Spotify                               | [`spotifyr`](https://www.rcharlie.com/spotifyr/)                                             |                               | [Slides](slides/class_9/class_9#1) [.qmd](slides/class_9/class_9.qmd)                                       |
-|    10 | 2024-07-02 | T    | Uso headless browser: chromote                     | [`chormote`](https://rstudio.github.io/chromote/)                                            | [C3 (20%)](homework/c_3.html) |                                                                                                             |
+|    10 | 2024-07-02 | T    | Uso headless browser: chromote                     | [`chormote`](https://rstudio.github.io/chromote/)                                            | [C3 (20%)](homework/c_3.html) | [Slides](slides/class_10/class_10#1) [.qmd](slides/class_10/class_10.qmd)                                   |
 |    11 | 2024-07-04 | T    | Captura automatica y presentación trabajo final    | [`usethis`](https://usethis.r-lib.org), [GitHub Actions](https://docs.github.com/en/actions) |                               |                                                                                                             |
 
 #### Evaluaciones
 
 - Control 1 (20%): Captura de página web 1.
   [Instrucciones](./homework/c_1).
-  <!-- [Respuesta](./homework/c_1_answers.pdf). -->
+  [Respuesta](./homework/c_1_answers.pdf).
 
 - Control 2 (20%): Captura de página web 2: Captura de datos desde IMBD.
   [Instrucciones](./homework/c_2).
-  <!-- [Respuesta](./homework/c_2_answers.pdf). -->
+  [Respuesta](./homework/c_2_answers.pdf).
 
 - Control 3 (20%): Uso de API <!-- Análisis de canciones en Spotify. -->
   <!-- [Instrucciones](./homework/c_3). -->
