@@ -1,0 +1,13 @@
+Package: Web scraping
+Title: Clase 11: Captura de datos diariamente
+Version: 0.0.2
+Authors@R: 
+    person(given = "Cristián",
+           family = "Ayala",
+           role = c("aut", "cre"),
+           email = "caayala@uc.cl")
+Description: Captura de página web
+Imports: 
+  rvest
+Encoding: UTF-8
+LazyData: true

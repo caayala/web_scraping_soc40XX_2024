@@ -1,0 +1,58 @@
+# Workflow derived from https://github.com/r-lib/actions/tree/v2/examples
+# Need help debugging build failures? Start at https://github.com/r-lib/actions#where-to-find-help
+on:
+  schedule:
+  # Ref: https://jasonet.co/posts/scheduled-actions/
+  - cron: '0 8 * * *'  # A las 5:00 hrs de cada día hora Chilena
+  # Otras alternativas para activar este script
+  # push:
+  #   branches: [main, master]
+  # pull_request:
+  #   branches: [main, master]
+
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'Comentario para log'     
+        required: true
+        default: 'Evento manual para obtener datos desde la web'
+      tags:
+        description: 'Tags'
+
+permissions: write-all
+
+name: R-web_scraping_class_11
+
+jobs:
+  R_scraping:
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      R_KEEP_PKG_SOURCE: yes
+    steps:
+      - uses: actions/checkout@v4
+      # This action checks-out your repository under $GITHUB_WORKSPACE, so your workflow can access it.
+      # https://github.com/actions/checkout
+
+      - uses: r-lib/actions/setup-r@v2
+      # This action sets up an R environment for use in actions.
+      # https://github.com/r-lib/actions/tree/v2-branch/setup-r
+        with:
+          # Use the public version of Posit package manager to serve binaries for Linux and Windows.
+          use-public-rspm: true
+
+      - name: Install dependencies
+        run: |
+          install.packages(c("remotes", "rvest"))
+          remotes::install_deps(".")
+        shell: Rscript {0}
+        
+      - name: Get data
+        run: Rscript "slides/class_11/class_11_captura.R"
+
+      - name: Commit data
+        run: |
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions"
+          git commit slides/class_11/class_11_files/df_contenido.csv -m 'New data' || echo "No changes to commit"
+          git push origin || echo "No changes to commit"

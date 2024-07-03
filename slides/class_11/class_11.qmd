@@ -1,0 +1,103 @@
+---
+title: |
+  | Clase 11: Web scraping automático
+  | con Github Actions
+subtitle: "Web scraping y acceso a datos desde la web"
+author: "<br>Cristián Ayala<br> Director DESUC"
+lang: 'es'
+date: '2024-07-04'
+date-format: 'long'
+copyright: "[github.com/caayala](https://github.com/caayala)"
+format: 
+  revealjs:
+    footer: "DESUC Web Scraping, 2024"
+    slide-number: c/t
+    transition: none
+    theme: [solarized]
+fig-align: center
+execute: 
+  cache: true
+# editor: 
+#   mode: source
+---
+
+
+```{r}
+#| echo: false
+#| warning: false
+suppressPackageStartupMessages(library(tidyverse))
+library(rvest)
+library(httr)
+```
+
+
+## Motivación
+
+- Dejar programada la captura de datos mediante web scraping en R.
+
+- Se puede ejecutar mediante [GitHub Actions](https://docs.github.com/en/actions).
+
+
+
+## Paquetes para la clase de hoy
+
+Grupo de paquetes interrelacionados:
+
+- [usethis](https://usethis.r-lib.org/reference/use_github_action.html):
+Ayuda con la configuración de una acción en GitHub.
+
+    Está diseñado pensando en el desarrollo de paquetes e integración contínua
+    ([CI](https://es.wikipedia.org/wiki/Integración_continua))
+
+- [Ejemplos de acciones](https://github.com/r-lib/actions/blob/v2/examples/README.md) 
+pensado en el desarrollo de paquetes.
+
+
+## GitHub Actions
+
+- _Automate, customize, and execute your software development workflows right in your repository with GitHub Actions_
+
+- Un evento gatilla un workflow que puede tener varias procesos y acciones en él.
+
+![Esquema de Github Actions](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/mgqzpz7yrlrc6z0pgb9p.png)
+
+
+## Ejercicio
+
+- Leer y guardar las últimas 10 páginas publicadas en el sitio web
+<https://www.latercera.com/lo-ultimo/>
+
+- Pasos: 
+  - Diseñar el _script_ `.R` de captura.
+  - Programar la acción en GitHub.
+    - `doc.yaml` para iniciar el servidor y ejecutar los _scripts_.
+    - `DESCRIPTION` con paquetes de R que se usarán.
+
+
+## {.smaller}
+
+Presentación y código en GitHub:\
+<https://github.com/caayala/web_scraping_soc40XX_2024>\
+<https://caayala.github.io/web_scraping_soc40XX_2024>
+
+<br>
+
+::: {style="font-size:3em; text-align:center; padding: 50px;"}
+¡Gracias!
+:::
+
+<br> 
+Cristián Ayala\
+<https://blog.desuc.cl/>\
+<http://github.com/caayala>
+
+
+```{r}
+#| echo = FALSE,
+#| include = FALSE
+
+# Extraer código R
+knitr::purl('class_11.qmd',
+            output = 'class_11.R',
+            quiet = TRUE)
+```
