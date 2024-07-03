@@ -1,0 +1,42 @@
+---
+title: "Trabajo final"
+subtitle: "Web Scraping y acceso a datos desde la web"
+author: "Cristián Ayala"
+date: "2024-07-02"
+lang: "es"
+format:
+  html:
+    page-layout: article
+    self-contained: false
+---
+
+```{r, echo=FALSE}
+```
+
+Ponderación
+
+:   40% de la nota final del curso
+
+Formato
+
+:   Desarrollar esta tarea con [Quarto](https://quarto.org/docs/get-started/hello/rstudio.html) o [Rmarkdown](https://rmarkdown.rstudio.com/lesson-1.html) generando un `.pdf`, agregando comentarios cuando sea necesario.
+
+### Objetivo:
+
+Se evaluará la aplicación de los contenidos vistos en el curso en un **proyecto de interés del alumno**.
+
+Responda las siguientes puntos en el documento que envíe para mostrar el proyecto desarrollado.
+
+## Tareas:
+
+1)    Mencione el **título** de su proyecto.
+
+1)    Describa brevemente el **objetivo** que busca su proyecto.
+
+1)    Comente si **logró ese objetivo** planteado en su totalidad o solo parcialmente.
+
+1)    Liste la o las **URLs o API** del servicio desde donde obtuvo la información.
+
+1)    Describa brevemente las mayores **dificultades** que tuvo que resolver para capturar la información buscada.
+
+
