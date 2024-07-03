@@ -54,5 +54,6 @@ jobs:
         run: |
           git config --local user.email "actions@github.com"
           git config --local user.name "GitHub Actions"
-          git commit slides/class_11/class_11_files/df_contenido.csv -m 'New data' || echo "No changes to commit"
+          git add slides/class_11/class_11_files/df_contenido.csv
+          git commit -m 'New data' || echo "No changes to commit"
           git push origin || echo "No changes to commit"
