@@ -55,7 +55,7 @@ Tendremos clases teóricas (T) y prácticas (P).
 
 - Control 3 (20%): Uso de API Análisis de canciones en Spotify.
   [Instrucciones](./homework/c_3).
-  <!-- [Respuesta](./homework/c_3_answers.pdf) -->
+  [Respuesta](./homework/c_3_answers.pdf)
 
 - Trabajo Final (40%): Trabajo de interés de los alumnos.
 
