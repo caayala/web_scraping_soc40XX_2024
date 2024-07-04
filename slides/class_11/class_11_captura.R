@@ -41,11 +41,11 @@ if(FALSE){
 }
 
 
-# Lectura de 12 páginas ----
+# Lectura de 14 páginas ----
 
 l_url <- paste0(url, 1:14)
 
-# Lectura de las 10 páginas.
+# Lectura de las 14 páginas.
 l_html <- lapply(l_url, 
                  function(.url){
                    Sys.sleep(1) # Pausa de 1 segundo
