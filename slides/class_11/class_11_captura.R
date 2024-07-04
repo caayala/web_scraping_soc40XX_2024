@@ -85,7 +85,7 @@ df_contenido$fecha_captura <- format(Sys.Date(), '%Y-%m-%d')
 
 if(file.exists('slides/class_11/class_11_files/df_contenido.csv')){
   df_archivo <- read.csv2('slides/class_11/class_11_files/df_contenido.csv')
-  
+
   # Sacar noticias duplicadas entre df_archivo y df_contenido recién capturado.
   # Es necesario ignorar la columna: 
   ignore_col <- c("fecha_captura", "tiempo")
@@ -128,12 +128,13 @@ write.table(df_contenido,
             file = 'slides/class_11/class_11_files/df_contenido.csv',
             quote = TRUE,
             row.names = FALSE,
-            col.names = FALSE,
+            col.names = TRUE,
             qmethod = 'double',
             fileEncoding = "utf8",
             sep = ';',
-            dec = ',',
-            append = TRUE)
+            dec = ','
+            # append = TRUE
+          )
 
 # Para leer archivo
 # df_test <- read.csv('slides/class_11/class_11_files/df_contenido.csv',
