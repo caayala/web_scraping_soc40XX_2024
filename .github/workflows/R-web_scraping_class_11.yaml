@@ -43,7 +43,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          install.packages(c("remotes", "rvest"))
+          install.packages(c("remotes", "jsonlite", "purrr"))
           remotes::install_deps(".")
         shell: Rscript {0}
         

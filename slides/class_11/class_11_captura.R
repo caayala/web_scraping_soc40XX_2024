@@ -3,152 +3,257 @@
 # author: Cristián Ayala
 # date: 2024-07-04
 
-# Cargar paquetes. Solo los necesarios.
+library(jsonlite)
+library(purrr)
 
-library(rvest)
+api_url <- "https://www.latercera.com/pf/api/v3/content/fetch/story-feed-query-fetch"
+path_out <- "slides/class_11/class_11_files/df_contenido.csv"
 
-url <- 'https://www.latercera.com/lo-ultimo/page/'
+api_query <- list(
+  feedOffset = 0,
+  feedSize = 100,
+  fromComponent = "result-list",
+  query = "type:story",
+  sectionsExclude = paste(
+    c(
+      "/opinion",
+      "/cartas-al-director",
+      "/editorial",
+      "/que-pasa",
+      "/mtonline",
+      "/servicios",
+      "/el-deportivo",
+      "/videos",
+      "/branded",
+      "/publirreportajes",
+      "/emprendimiento",
+      "/sustentabilidad",
+      "/red-activa",
+      "/educacion",
+      "/sociales",
+      "/lt-board",
+      "/mtonline",
+      "/club-la-tercera",
+      "/paula",
+      "/finde",
+      "/ai-tiempo"
+    ),
+    collapse = ", "
+  )
+)
 
-# Función para obtener elementos de interés de cada artículo.
-fun_parse_articulos <- function(.html){
-  # Captura de artículos dentro de la sección de clase .top-mainy
-  html_art <- .html |> 
-    html_elements('.top-mainy article')
-  
-  html_headline <- html_art |> 
-    html_element('.headline')
-  
-  list(
-    titulo      = html_headline |> html_text(),
-    url_noticia = html_headline |> html_element('a') |> html_attr('href'),
-    tag         = html_headline |> html_element('.tag') |> html_text(),
-    texto       = html_art |> html_element('.deck p') |> html_text(),
-    url_imagen  = html_art |> html_element('img') |> html_attr('src'),
-    periodista  = html_art |> html_element('.byline') |> html_text(),
-    tiempo      = html_art |> html_element('.time') |> html_text()
-  ) |> 
-    as.data.frame()
+pluck_or_null <- function(x, path) {
+  purrr::pluck(x, !!!path, .default = NULL)
 }
 
-
-# Prueba de página 1 ----
-
-if(FALSE){
-  # Lectura de sitio web
-  html_1 <- read_html(paste0(url, '1'))
-  
-  df_1 <- fun_parse_articulos(html_1) 
+first_non_null <- function(...) {
+  values <- purrr::keep(list(...), \(v) !is.null(v))
+  if (length(values) == 0) {
+    return(NULL)
+  }
+  values[[1]]
 }
 
-
-# Lectura de 14 páginas ----
-
-l_url <- paste0(url, 1:14)
-
-# Lectura de las 14 páginas.
-l_html <- lapply(l_url, 
-                 function(.url){
-                   Sys.sleep(1) # Pausa de 1 segundo
-                   read_html(.url)
-                 })
-
-
-# Procesamiento ----
-l_contenido <- lapply(l_html,
-                      fun_parse_articulos)
-
-# Generar solo una tabla.
-df_contenido <- do.call(rbind, 
-                        l_contenido)
-
-
-# Correcciones ----
-
-# Remover texto contenido dentro de nodos.
-fun_remove <- function(contenido, texto_a_rm){
-  lapply(seq_along(contenido), 
-         \(i) sub(texto_a_rm[[i]], "", contenido[[i]])
-  ) |> 
-    unlist()
+as_chr_or_na <- function(x) {
+  if (is.null(x) || length(x) == 0) {
+    return(NA_character_)
+  }
+  x <- as.character(x[[1]])
+  if (!nzchar(trimws(x))) {
+    return(NA_character_)
+  }
+  trimws(x)
 }
 
-# Quitar texto de tiempo en el campo de periodistas.
-df_contenido$periodista <- fun_remove(df_contenido$periodista, df_contenido$tiempo)
-# Quitar texto de tag en el campo de título.
-df_contenido$titulo <- fun_remove(df_contenido$titulo, df_contenido$tag)
+extract_stories <- function(api_resp) {
+  first_non_null(
+    api_resp$content_elements,
+    pluck_or_null(api_resp, c("content", "elements")),
+    pluck_or_null(api_resp, c("result", "content_elements")),
+    pluck_or_null(api_resp, c("result", "content", "elements"))
+  )
+}
 
-# Fecha de captura.
-df_contenido$fecha_captura <- format(Sys.Date(), '%Y-%m-%d')
+stories_as_list <- function(stories) {
+  if (is.data.frame(stories)) {
+    idx <- seq_len(nrow(stories))
+    return(purrr::map(
+      idx,
+      \(i) {
+        purrr::imap(stories, \(col, nm) {
+          if (is.data.frame(col)) {
+            if (nrow(col) < i) {
+              return(NULL)
+            }
+            return(as.list(col[i, , drop = FALSE]))
+          }
+          if (length(col) < i) {
+            return(NULL)
+          }
+          col[[i]]
+        })
+      }
+    ))
+  }
+  if (is.list(stories)) {
+    return(stories)
+  }
+  list()
+}
 
+extract_autores <- function(story) {
+  autores <- first_non_null(
+    pluck_or_null(story, c("credits", "by")),
+    pluck_or_null(story, c("credits", "authors"))
+  )
 
-# Grabación ----
+  if (is.null(autores) || length(autores) == 0) {
+    return(as_chr_or_na(story$byline))
+  }
 
-if(file.exists('slides/class_11/class_11_files/df_contenido.csv')){
-  df_archivo <- read.csv2('slides/class_11/class_11_files/df_contenido.csv')
+  if (is.data.frame(autores)) {
+    nombres <- first_non_null(autores$name, autores$byline)
+    nombres <- as.character(nombres)
+  } else {
+    nombres <- purrr::map_chr(
+      autores,
+      \(a) as_chr_or_na(first_non_null(a$name, pluck_or_null(a, c("byline"))))
+    )
+  }
 
-  # Sacar noticias duplicadas entre df_archivo y df_contenido recién capturado.
-  # Es necesario ignorar la columna: 
+  nombres <- trimws(nombres)
+  nombres <- nombres[!is.na(nombres) & nzchar(nombres)]
+  if (length(nombres) == 0) {
+    return(as_chr_or_na(story$byline))
+  }
+  paste(nombres, collapse = " y ")
+}
+
+extract_story_row <- function(story) {
+  titulo <- as_chr_or_na(first_non_null(
+    pluck_or_null(story, c("headlines", "basic")),
+    story$title
+  ))
+  tag <- as_chr_or_na(first_non_null(
+    pluck_or_null(story, c("label", "basic", "text")),
+    pluck_or_null(story, c("taxonomy", "primary_section", "name")),
+    pluck_or_null(story, c("headlines", "kicker"))
+  ))
+  texto <- as_chr_or_na(first_non_null(
+    pluck_or_null(story, c("description", "basic")),
+    story$subtitle
+  ))
+  url_imagen <- as_chr_or_na(first_non_null(
+    pluck_or_null(story, c("promo_items", "basic", "url")),
+    pluck_or_null(story, c("promo_items", "lead_art", "url"))
+  ))
+  if (is.na(url_imagen)) {
+    c_elements <- story$content_elements
+    if (is.data.frame(c_elements) && nrow(c_elements) > 0) {
+      if ("type" %in% names(c_elements) && "url" %in% names(c_elements)) {
+        idx_img <- which(c_elements$type == "image")
+        if (length(idx_img) > 0) {
+          url_imagen <- as_chr_or_na(c_elements$url[idx_img[1]])
+        }
+      }
+    } else if (is.list(c_elements) && length(c_elements) > 0) {
+      urls <- purrr::map_chr(
+        c_elements,
+        \(el) {
+          if (identical(el$type, "image")) {
+            return(as_chr_or_na(el$url))
+          }
+          NA_character_
+        }
+      )
+      urls <- urls[!is.na(urls)]
+      if (length(urls) > 0) {
+        url_imagen <- urls[[1]]
+      }
+    }
+  }
+
+  data.frame(
+    titulo = titulo,
+    url_noticia = as_chr_or_na(story$canonical_url),
+    tag = tag,
+    texto = texto,
+    url_imagen = url_imagen,
+    periodista = extract_autores(story),
+    tiempo = as_chr_or_na(story$display_date),
+    fecha_captura = format(Sys.Date(), "%Y-%m-%d"),
+    id_noticia = as_chr_or_na(story[["_id"]]),
+    tipo_noticia = as_chr_or_na(story$type),
+    seccion = as_chr_or_na(pluck_or_null(
+      story,
+      c("taxonomy", "primary_section", "name")
+    )),
+    fecha_publicacion = as_chr_or_na(first_non_null(
+      story$publish_date,
+      story$display_date
+    )),
+    fecha_actualizacion = as_chr_or_na(story$last_updated_date),
+    stringsAsFactors = FALSE
+  )
+}
+
+bind_fill_rows <- function(df_a, df_b) {
+  all_cols <- union(names(df_a), names(df_b))
+  for (col in setdiff(all_cols, names(df_a))) {
+    df_a[[col]] <- NA_character_
+  }
+  for (col in setdiff(all_cols, names(df_b))) {
+    df_b[[col]] <- NA_character_
+  }
+  df_a <- df_a[, all_cols, drop = FALSE]
+  df_b <- df_b[, all_cols, drop = FALSE]
+  rbind(df_a, df_b)
+}
+
+query_json <- toJSON(api_query, auto_unbox = TRUE)
+req_url <- paste0(api_url, "?query=", URLencode(query_json, reserved = TRUE))
+api_resp <- fromJSON(req_url, simplifyVector = TRUE)
+
+stories <- stories_as_list(extract_stories(api_resp))
+
+if (!is.list(stories) || length(stories) == 0) {
+  stop("No se encontraron noticias en la respuesta de la API.")
+}
+
+df_contenido <- do.call(
+  rbind,
+  purrr::map(stories, extract_story_row)
+)
+
+if (file.exists(path_out)) {
+  df_archivo <- read.csv2(path_out, stringsAsFactors = FALSE)
+  df_bind <- bind_fill_rows(df_archivo, df_contenido)
+
+  # Deduplicar ignorando fecha_captura y tiempo para mantener continuidad histórica.
   ignore_col <- c("fecha_captura", "tiempo")
-  
-  df_bind <- rbind(df_archivo,
-                   df_contenido)
-  
-  # Create a subset excluding the ignore column
-  df_bind_subset <- df_bind[ , !(names(df_bind) %in% ignore_col)]
-  
-  # Find duplicated rows based on the subset
-  duplicate_indices <- duplicated(df_bind_subset)
-  
-  # Subset the original dataframe to keep only unique rows
-  df_contenido <- df_bind[!duplicate_indices, ]
-  
-  nrow(df_contenido)
-  
-} else {
-  # Guardar archivo de contenidos por primera vez.
-  # df_contenido <- df_contenido[1:50, ]
-  write.csv2(df_contenido,
-             file = 'slides/class_11/class_11_files/df_contenido.csv',
-             quote = TRUE,
-             row.names = FALSE,
-             fileEncoding = "utf8")
+  df_bind_subset <- df_bind[, !(names(df_bind) %in% ignore_col), drop = FALSE]
+  dup_idx <- duplicated(df_bind_subset)
+  df_contenido <- df_bind[!dup_idx, , drop = FALSE]
 }
 
-# Solo noticias no presentes en el archivo histórico.
-# Lo dejo comentado porque parecen haber urls o noticias que se repiten en la medida que 
-# actualizan contenido.
-# 
-
-# df_archivo2 <- df_archivo[1:5, ]
-# df_contenido2 <- subset(df_contenido, !(url_noticia %in% df_archivo$url_noticia))
-
-# Guardar datos en archivo de texto.
-# Se agregan al final del archivo creado en la primera captura de información.
-write.table(df_contenido,
-            file = 'slides/class_11/class_11_files/df_contenido.csv',
-            quote = TRUE,
-            row.names = FALSE,
-            col.names = TRUE,
-            qmethod = 'double',
-            fileEncoding = "utf8",
-            sep = ';',
-            dec = ','
-            # append = TRUE
-          )
-
-# Para leer archivo
-# df_test <- read.csv('slides/class_11/class_11_files/df_contenido.csv',
-#                     header = TRUE,
-#                     sep = ';') |> 
-#   tibble::as_tibble()
-
+write.table(
+  df_contenido,
+  file = path_out,
+  quote = TRUE,
+  row.names = FALSE,
+  col.names = TRUE,
+  qmethod = "double",
+  fileEncoding = "utf8",
+  sep = ";",
+  dec = ","
+)
 
 # Preparar GitHub Actions ----
 
 # Ayuda desde usethis::use_github_action('check-release')
 
 # usethis::use_github_action('check-release')
-# 
+#
 # > usethis::use_github_action('check-release')
 # ✔ Setting active project to '~/Dropbox (DESUC)/Documentos/Clases/UC - Web scraping 2024/web_scraping_soc40XX_2024'
 # ✔ Creating '.github/'
