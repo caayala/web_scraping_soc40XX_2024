@@ -210,30 +210,109 @@ bind_fill_rows <- function(df_a, df_b) {
   rbind(df_a, df_b)
 }
 
-query_json <- toJSON(api_query, auto_unbox = TRUE)
-req_url <- paste0(api_url, "?query=", URLencode(query_json, reserved = TRUE))
-api_resp <- fromJSON(req_url, simplifyVector = TRUE)
-
-stories <- stories_as_list(extract_stories(api_resp))
-
-if (!is.list(stories) || length(stories) == 0) {
-  stop("No se encontraron noticias en la respuesta de la API.")
+fetch_stories_page <- function(feed_offset, query_template) {
+  query_page <- query_template
+  query_page$feedOffset <- feed_offset
+  query_json <- toJSON(query_page, auto_unbox = TRUE)
+  req_url <- paste0(api_url, "?query=", URLencode(query_json, reserved = TRUE))
+  api_resp <- fromJSON(req_url, simplifyVector = TRUE)
+  stories_as_list(extract_stories(api_resp))
 }
 
-df_contenido <- do.call(
-  rbind,
-  purrr::map(stories, extract_story_row)
-)
+as_data_frame <- function(df_list) {
+  if (length(df_list) == 0) {
+    return(data.frame(stringsAsFactors = FALSE))
+  }
+  do.call(rbind, df_list)
+}
 
+max_news_per_day <- 600
+page_size <- api_query$feedSize
+
+df_archivo <- NULL
 if (file.exists(path_out)) {
   df_archivo <- read.csv2(path_out, stringsAsFactors = FALSE)
-  df_bind <- bind_fill_rows(df_archivo, df_contenido)
+}
+
+known_urls <- if (!is.null(df_archivo) && "url_noticia" %in% names(df_archivo)) {
+  unique(na.omit(df_archivo$url_noticia))
+} else {
+  character(0)
+}
+
+known_ids <- if (!is.null(df_archivo) && "id_noticia" %in% names(df_archivo)) {
+  unique(na.omit(df_archivo$id_noticia))
+} else {
+  character(0)
+}
+
+stop_on_known <- length(known_urls) > 0 || length(known_ids) > 0
+offset <- 0
+stop_capture <- FALSE
+l_new_rows <- list()
+n_new <- 0
+
+while (!stop_capture && n_new < max_news_per_day) {
+  stories_page <- fetch_stories_page(offset, api_query)
+  if (!is.list(stories_page) || length(stories_page) == 0) {
+    break
+  }
+
+  df_page <- as_data_frame(purrr::map(stories_page, extract_story_row))
+  if (nrow(df_page) == 0) {
+    break
+  }
+
+  known_hit <- rep(FALSE, nrow(df_page))
+  if (stop_on_known && "url_noticia" %in% names(df_page)) {
+    known_hit <- known_hit | (!is.na(df_page$url_noticia) & df_page$url_noticia %in% known_urls)
+  }
+  if (stop_on_known && "id_noticia" %in% names(df_page)) {
+    known_hit <- known_hit | (!is.na(df_page$id_noticia) & df_page$id_noticia %in% known_ids)
+  }
+
+  if (any(known_hit)) {
+    first_known <- which(known_hit)[1]
+    if (first_known > 1) {
+      df_page <- df_page[seq_len(first_known - 1), , drop = FALSE]
+    } else {
+      df_page <- df_page[0, , drop = FALSE]
+    }
+    stop_capture <- TRUE
+  }
+
+  if (nrow(df_page) > 0) {
+    remaining <- max_news_per_day - n_new
+    if (nrow(df_page) > remaining) {
+      df_page <- df_page[seq_len(remaining), , drop = FALSE]
+      stop_capture <- TRUE
+    }
+    l_new_rows[[length(l_new_rows) + 1]] <- df_page
+    n_new <- n_new + nrow(df_page)
+  }
+
+  if (length(stories_page) < page_size) {
+    break
+  }
+  offset <- offset + page_size
+}
+
+df_nuevo <- as_data_frame(l_new_rows)
+
+if (!is.null(df_archivo)) {
+  if (nrow(df_nuevo) > 0) {
+    df_bind <- bind_fill_rows(df_archivo, df_nuevo)
+  } else {
+    df_bind <- df_archivo
+  }
 
   # Deduplicar ignorando fecha_captura y tiempo para mantener continuidad histórica.
   ignore_col <- c("fecha_captura", "tiempo")
   df_bind_subset <- df_bind[, !(names(df_bind) %in% ignore_col), drop = FALSE]
   dup_idx <- duplicated(df_bind_subset)
   df_contenido <- df_bind[!dup_idx, , drop = FALSE]
+} else {
+  df_contenido <- df_nuevo
 }
 
 write.table(
