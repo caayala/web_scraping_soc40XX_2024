@@ -11,7 +11,4 @@ library(httr)
 #| include = FALSE
 
 # Extraer código R
-knitr::purl('class_11.qmd',
-            output = 'class_11.R',
-            quiet = TRUE)
-
+knitr::purl('class_11.qmd', output = 'class_11.R', quiet = TRUE)

@@ -234,7 +234,9 @@ if (file.exists(path_out)) {
   df_archivo <- read.csv2(path_out, stringsAsFactors = FALSE)
 }
 
-known_urls <- if (!is.null(df_archivo) && "url_noticia" %in% names(df_archivo)) {
+known_urls <- if (
+  !is.null(df_archivo) && "url_noticia" %in% names(df_archivo)
+) {
   unique(na.omit(df_archivo$url_noticia))
 } else {
   character(0)
@@ -265,10 +267,12 @@ while (!stop_capture && n_new < max_news_per_day) {
 
   known_hit <- rep(FALSE, nrow(df_page))
   if (stop_on_known && "url_noticia" %in% names(df_page)) {
-    known_hit <- known_hit | (!is.na(df_page$url_noticia) & df_page$url_noticia %in% known_urls)
+    known_hit <- known_hit |
+      (!is.na(df_page$url_noticia) & df_page$url_noticia %in% known_urls)
   }
   if (stop_on_known && "id_noticia" %in% names(df_page)) {
-    known_hit <- known_hit | (!is.na(df_page$id_noticia) & df_page$id_noticia %in% known_ids)
+    known_hit <- known_hit |
+      (!is.na(df_page$id_noticia) & df_page$id_noticia %in% known_ids)
   }
 
   if (any(known_hit)) {
