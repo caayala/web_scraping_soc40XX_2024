@@ -25,7 +25,7 @@ name: R-web_scraping_class_11
 
 jobs:
   R_scraping:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
